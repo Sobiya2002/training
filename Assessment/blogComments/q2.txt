@@ -1,0 +1,59 @@
+const express = require('express');
+const axios = require('axios');
+const path = require('path');
+const app = express();
+
+// Parse JSON bodies
+app.use(express.json());
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+// In-memory store of edited comment bodies: Map<id:number, body:string>
+const editedComments = new Map();
+console.log('EC', editedComments);
+
+
+app.get('/api/comments', async (req, res) => {
+  try {
+    const { data } = await axios.get('https://dummyjson.com/posts/1/comments', {
+      params: { limit: 3 }
+    });
+
+    const merged = (data.comments || []).map((c) => {
+      const id = Number(c.id);
+      const override = editedComments.get(id);
+      return override ? { ...c, body: override } : c;
+    });
+
+    res.json(merged);
+  } catch (err) {
+    console.error('Fetch error:', err?.response?.status, err?.message);
+    res.status(502).json({ error: 'Failed to fetch comments' });
+  }
+});
+
+/**
+ * PUT /api/comments/:id
+ * Save an edited comment body locally (no persistence).
+ */
+app.put('/api/comments/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { body } = req.body || {};
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid comment id' });
+  }
+  if (typeof body !== 'string' || body.trim() === '') {
+    return res.status(400).json({ error: 'Updated comment is required' });
+  }
+
+  const updatedComment = body.trim();
+  editedComments.set(id, updatedComment);
+  res.json({ success: true, id, body: updatedComment });
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () =>
+  console.log(`✅ Server running at http://localhost:${PORT}`)
+);

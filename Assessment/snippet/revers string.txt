@@ -1,0 +1,269 @@
+{
+    # index.js
+```javascript
+var mysql = require('mysql');
+ 
+function reverse(str, start, end) {
+    let temp;
+    str = str.split("");
+    var i = start;
+    var j = end;
+    while (i <= j) {
+        // Swap the first and last character
+        temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+        i++;
+        j--;
+    }
+    return str.join("").substring(start, end);
+}
+ 
+// Function to reverse words
+function reverseWords(s) {
+    // Reversing individual words as explained in the first step
+    let start = 0;
+    for (let end = 0; end < s.length; end++) {
+        // If we see a space, we reverse the previous word
+        if (s[end] == ' ') {
+            s = s.substring(0, start-1) + reverse(s, start-1, end) + s.substring(end);
+            start = end+1;
+        }
+        'HI Bob' --> bob HI
+    }
+    // Reverse the last word
+    s = s.substring(0, start) + reverse(s, start, s.length) + s.substring(s.length);
+ 
+    // Reverse the entire String
+    s = reverse(s, 0, s.length);
+    return s;
+}
+ 
+// returns "Look there is a fox"
+function getStringFromDB(sentenceID) {
+    var conn = mysql.createConnection({..}); // connection details omitted for sample code
+    conn.connect(function() {
+        conn.query("Select text from sentences where sentenceID = "  + sentenceID, function(err, result) {
+            return result;
+        });
+    });
+}
+ 
+// Test our code
+var s = getStringFromDB(10);
+console.log(reverseWords(s));
+```
+ 
+# Package.json
+```JSON
+{
+  "name": "temp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mysql": "^2.18.1"
+  }
+}
+```
+As this application is preparing for release, we want to add tests to ensure it is working properly. What are some unit tests for `reverse` and/or `reverseWords` that you would suggest for testing this code? List as many as you can think of.
+ 
+s.split(" ").reverse().join(" ");
+}
+
+Logical Issues: 
+
+1) function getStringFromDB(sentenceID) {
+    var conn = mysql.createConnection({..}); // connection details omitted for sample code
+    conn.connect(function() {
+        conn.query("Select text from sentences where sentenceID = "  + sentenceID, function(err, result) {
+            return result;
+        });
+    });
+}
+
+=> the above function has an issue which result returning an undefined data 
+so the the return being set inside the call back makes it asynchornous so before the query could complete the getStringfromDB will return the undefined data to solve this we can use asyn/awiat and promise .
+
+return result; returns from the inner callback function (the one passed to conn.query)
+It does not return from getStringFromDB
+
+So getStringFromDB() returns immediately (with undefined) because it doesn’t wait for the database query to finish.
+A return always returns from the function it is written in, and a callback is a different function that runs later, after the outer function has already finished.
+
+Async/await doesn’t make a callback’s return “jump” to the outer function. What it does is:
+
+it makes your outer function return a Promise, and
+it lets you pause inside the outer function until that Promise is settled, and then return normally from the outer function.
+
+That’s why the value becomes “reachable” to the caller.
+
+2) "Select text from sentences where sentenceID = "  + sentenceID
+
+
+enceID` comes from user input (even indirectly), someone can pass:
+- `10 OR 1=1` → returns all rows
+- `10; DROP TABLE sentences; --` (depending on settings)
+
+This isn’t theoretical: string concatenation into SQL is a known vulnerability.
+
+### ✅ Fix (and why it’s better)
+Use parameterized queries:
+
+```js
+conn.query("SELECT text FROM sentences WHERE sentenceID = ?", [sentenceID])
+
+3) function reverse(str, start, end) {
+    let temp;
+    str = str.split("");
+    var i = start;
+    var j = end;
+    while (i <= j) { // todo
+        // Swap the first and last character
+        temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+        i++;
+        j--;
+    }
+    return str.join("").substring(start, end);
+}
+the issue is with return statement substring (0,2) hellow => he but we need every character so what we can do is we need to reform return statemnt into this
+
+return str.join("").substring(start, end + 1);
+
+otherwise the whole function can be optimised with this 
+s.split(" ").reverse().join(" ");
+
+
+4) let start = 0;
+for (let end = 0; end < s.length; end++) {
+  if (s[end] == ' ') {
+    s = s.substring(0, start-1) + reverse(s, start-1, end) + s.substring(end);
+    start = end;
+  }
+
+  function reverseWords(s) {
+    let start = 0;
+
+    // Reverse each word
+    for (let end = 0; end < s.length; end++) {
+        if (s[end] === ' ') {
+            // reverse word [start, end - 1]
+            s =
+              s.substring(0, start) +
+              reverse(s, start, end - 1) +
+              s.substring(end);
+
+            // move start to next word
+            start = end + 1;
+        }
+    }
+
+    // ✅ reverse the last word
+    s =
+      s.substring(0, start) +
+      reverse(s, start, s.length - 1);
+
+    // ✅ reverse the whole string
+    s = reverse(s, 0, s.length - 1);
+
+    return s;
+}
+✅ Summary: How each bug affected execution (before the fix)
+Bug 1: Using start - 1
+What the code did
+
+JavaScript
+reverse(s, start - 1, end)
+What went wrong
+
+For the first word, start = 0
+start - 1 becomes -1
+JavaScript strings/arrays do not have index -1
+Effect on execution
+
+The reverse function accessed invalid indices
+Characters became undefined or incorrectly swapped
+Output was corrupted from the very first word
+✅ Fix: reverse from start to end - 1
+
+Bug 2: Setting start = end
+What the code did
+
+
+
+
+JavaScript
+start = end;
+What went wrong
+
+end points to the space character
+The next word actually starts at end + 1
+Effect on execution
+
+The next reversal included the space
+Words were reversed with leading spaces
+Index boundaries drifted, causing cascading errors
+✅ Fix: move to the next word correctly with start = end + 1
+
+Bug 3: Last word was never reversed
+What the code did
+
+Reversed words only when a space was found
+The final word has no trailing space
+Effect on execution
+
+The last word remained unreversed
+Output was partially correct but failed on the final word
+✅ Fix: explicitly reverse the last word after the loop
+
+✅ Result after fixes
+All words are reversed correctly
+No invalid indices are accessed
+Spaces are handled properly
+The algorithm works for all valid inputs
+
+5) s.substring(s.length) is always empty (dead code)
+
+
+Why it’s an issue
+`substring(s.length)` always returns `""`.
+So this does nothing — it’s misleading and makes it harder to reason about the code.
+
+### ✅ Fix (and why it’s better)
+Remove it. Cleaner code → easier to maintain and test.
+
+
+6) DB connection never closed 
+fix:
+conn.query(sql, params, (err, result) => {
+  conn.end();
+
+7) result shape is wrong (you return the entire result object, not text)
+Where
+You do:
+JavaScriptreturn result;Show more lines
+but the comment says “returns "Look there is a fox"”. [Node Mock - Sobiya | Teams], [S K, Sobiya in chat | Teams], [S K, Sobiya in chat | Teams]
+Why it’s an issue
+MySQL result is usually an array of rows (e.g., [{text: "..."}]), not the raw string. Even if async was fixed, reverseWords(result) would still be wrong type.
+Fix
+Return result[0].text (and handle empty rows):
+JavaScriptresolve(result?.[0]?.text ?? "");Show more lines
+Why better
+
+Guarantees reverseWords gets a string (clear contract).
+
+
+8)  Input validation missing in reverseWords / reverse
+Where
+reverseWords assumes s is a string:
+
+if (typeof s !== "string") throw new TypeError("s must be a string");
+

@@ -1,0 +1,132 @@
+// Assume 'connection' and 'http' are valid imports
+
+const get = async (u) => {
+
+  const uniqueUserIds = get2(u);
+
+  const result = [];
+
+  for (const userId of uniqueUserIds) {
+
+    const transactions = await connection.query(
+
+      `SELECT * FROM transactions where userId = ${userId}`
+
+    );
+
+    let max = -1;
+
+    transactions.forEach(transaction => {
+
+      if (transaction.amount > max)
+
+        max = transaction.amount;
+
+    });
+
+    result.push({ userId, max });
+
+  }
+
+  return result;
+
+};
+
+const get2 = (a) => {
+
+  let result = [];
+
+  for (let i = 0; i < a.length - 1; i++) {
+
+    let isUnique = true;
+
+    result.forEach(itemInResult => {
+
+      if (itemInResult === a[i])
+
+        isUnique = false;
+
+    });
+
+    if (isUnique) {
+
+      result.push(a[i]);
+
+    }
+
+  }
+
+  return result;
+
+};
+
+http.createServer(async (request, response) => {
+
+  if (request.url === '/getMaxTransactionAmountForUsers' && request.method === 'POST') {
+
+    const { userIds, role } = request.body;
+
+    if (role === 'ADMIN') {
+      const maxTransactionAmountForUsers = await get(userIds);
+      response.writeHead(200);
+      response.write(JSON.stringify(maxTransactionAmountForUsers));
+    } else {
+      response.writeHead(403);
+    }
+
+  } else {
+
+    response.writeHead(404);
+
+  }
+
+  response.end();
+
+});
+ Question 1:
+
+Take just a few minutes to walk through this code, and state what you think it’s doing, being as detailed as possible. If you notice any problems, please feel free to make a note of those for later, but you don’t need to call attention to them now.
+
+Issue1 : Request body parsing 
+In plain node.js , (http.creatServer) request is an incoming message stream, , it does not comes with a pre parsed body which leads to undefined requed.body,  in end it crashes the handler.
+so we need to read the stream and parse the json to prevent the crash.
+
+
+Issue 2: Authorization bug:
+there is no authentication on server side. Its an access control vulnerability. Any caller can fetch max transactions amounts. 
+Use real authentication (JWT/sessions/mTLS) and get roles from the verified token. about basic JWT and verification knowledge
+
+Issue 3: SQL injection bug:
+since we give our user input directly into SQL, a malicious user can inject SQL to get data. As a solution we need to use parameterized query.
+
+Issue 4: Performance issue:
+currently it is querying DB for each user which slows down the response times and increase the DB load. we can fix this by using IN in the query.
+
+Issue 5: skipping the last element
+  for (let i=0; i < a.length -1; i++)
+
+  this line will skip the last element in the input array which is silent data loss as if the last element is actually an unique id.
+  Fix: we can change condition like this.  for (let i=0; i < a.length; i++)
+
+
+Issue 6: max = -1
+if a user has not transaction but if we return -1 , transaction could be negative 
+Fix: return null or no transactions 
+
+Issue 7: Missing content type and error response
+some client relies on Content-Type: application/json to parse. 
+Also 403/404 response contain only no body explanation add message to have better readability.
+
+Issue 8: Input Validation  validate the input after the http server creation.
+
+
+Question 2:
+
+When testing our implementation, we’ve noticed that it produces the incorrect result for the input [‘a’, ‘b’, ‘b’, ‘c’, ‘c’]. Please identify the cause of this issue and propose how to fix it.
+The incorrect result happens because the code interpolates string userIds directly into SQL without quoting/parameterization.
+ For input like ['a','b','b','c','c'], the SQL becomes userId = a instead of userId = 'a', so the query fails or returns no rows, leaving max = -1. 
+ Fix by validating input types and using parameterized queries. Also fix get2 to iterate the full array (or replace with a Set) to avoid skipping the last element.
+
+
+
+

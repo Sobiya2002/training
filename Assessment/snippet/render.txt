@@ -1,0 +1,524 @@
+var userProfile = null; var userPosts = [];
+var currentView = 'profile';
+
+// we are initialising userprofile as null and userposts as empty array and curretnView as profile default. these are global variables.
+
+function logMessage (type, message) {
+  if (type === 'error') {
+    console.error("[ERROR]", message);
+  } else {
+    console.log("[INFO]", message);
+  }
+}
+
+// function logMessage checks the type if it is error then it logs the error message otherwise it logs the info message
+
+function initDashboard() {
+  window.addEventListener('hashchange', function() {
+    var hash = window.location.hash.substring(1);
+    if (hash === 'profile' || hash === 'posts') {
+      currentView = hash;
+      renderView();
+    } else {
+
+      // to do window.location.hash = 'profile' // log error stating invalid route
+    }
+  });
+
+  currentView = 'profile';
+  window.location.hash= 'profile';
+
+  if (!window.location.hash) {
+    window.location.hash= 'profile';
+  } else {
+  }
+
+  currentView = window.location.hash.substring(1);|
+  renderView();
+}
+// first in this function we are registering an listener so upon any action thi slistener works and hash fromthe url will be extracted from 1st index and based upon the return value we are check it its profile or posts it decides the currentview and then we are rendering it. 
+then as defualt we are setting the current view as profile and window.location.has as profile and checks its existence if it doesn't again we are setting the windo.location.has as porifile and curretview repaeting same extraction from 1st index and renderview function call. 
+
+
+function fetchUser Profile() {
+  fetch("https://api.example.com/user/profile")
+    .then(function(response) {
+      return response.json();
+    })
+    .then(function(data) {
+      userProfile = data;
+      renderProfile();
+    })
+}
+
+.catch(function(err) {
+  logMessage('error', "Failed to fetch user profile: " + err);
+});
+// fetch user profile function calls the backend api the first .then returns promise with the response from api and the response being parsed from json to js object and the response data is being assigned to user profile and renderprofile fucntion is called. if any error or issues happens it fls the error message with the help of logMessage function.
+
+
+function fetchUser Posts() {
+  fetch("https://api.example.com/user/posts")
+    .then(function(response) {
+    })
+  return response.json();
+  .then(function(data) {
+  })
+  userPosts = data;
+  renderPosts();
+  .catch(function(err) {
+    logMessage('error', "Failed to fetch user posts: + err);
+  });
+}
+
+// fetch user post does the same as user profile .
+
+function renderView() {
+  if (currentView === 'profile') {
+    if (!userProfile) {
+      fetchUserProfile();
+    } else {
+      // to do instaed of having renderProfile() call in next line we have it within else block.
+    }
+    renderProfile();
+  } else if (currentView === 'posts') {
+    if (userPosts.length
+      fetchUserPosts();
+    } else {
+      ===
+      0) {
+      renderPosts();
+    }
+  }
+}
+
+// function rendr view checks the current ciew if its profile it checks the userProfile data existence if it exists we are rendering the profile page or else we are first fetching the data with fetcuserProfile function then as usual rendering the profile page. 
+other part if the current vie wposts it checks for the usrpost array length if tis empty it calles the fetch user posts function and then render the post page. if it exist already then as usual render it.
+
+
+
+function renderProfile() {
+  var container = document.getElementById("dashboardContainer");
+  if (!container) {
+    toDo : we can have the logMessages of error can be added here.
+  }
+
+  logMessage('error', "Dashboard container not found");
+  return;
+
+  var html = "&lt;h2&gt;User Profile&lt;/h2&gt;" +
+    "&lt;p&gt;Name: " + userProfile.name + "&lt;/p&gt;" +
+    "&lt;p&gt;Email: " + userProfile.email + "&lt;/p&gt;" +
+    "&lt;button id='editProfileBtn'&gt;Edit Profile&lt;/button&gt;" +
+    "&lt;div id='edit ProfileForm' style='display:none;"
+    /&gt;" +
+    "&lt;input type='text' id='nameInput' value='" + userProfile.name + "'/&gt;" +
+    "&lt;input type='text' id='emailInput' value='" + userProfile.email + "&lt;button id='saveProfileBtn'&gt;Save&lt;/button&gt;" +
+    "&lt;/div&gt;";
+
+  container.innerHTML = html;
+
+  document.getElementById("editProfileBtn").addEventListener("click", function() {
+    document.getElementById("editProfileForm").style.display
+    "block";
+
+    document.getElementById("saveProfileBtn").addEventListener("click", function() {
+      updateProfile();
+    });
+  });
+}
+
+// render profile function get the dashboard container by elemmbt id and check it the container exists if its not logs an error message and returns ir 
+it builds an string of html which contains the data from the input field name and email and it creates an edit profile button and hidden form of user profile name and email.
+then it adds an event listenre if the user clicks on edit prfile button the hidden form displays and allow the usr to edit the name and email. and then it calls the userprofile function 
+
+function renderPosts() {
+  var container = document.getElementById("dashboardContainer");
+  if (!container) {
+    // toDo : we can have the logMessages of error can be added here.
+  }
+
+  logMessage('error', "Dashboard container not found");
+  return;
+
+  container.innerHTML = "&lt;h2&gt;User Posts&lt;/h2&gt;";
+
+  userPosts.forEach(function(post) {
+    container.innerHTML += "&lt;div class='post-item'&gt;" +
+  });
+}
+
+"&lt;h3&gt;" + post.title + "&lt;/h3&gt;" +
+"&lt;p&gt;"+post.content + "&lt;/p&gt;" +
+"&lt;/div&gt;";
+
+// the render posts function also get the dashboard container by element id and checks its existence it its not here it logs the error message and retrun the usr posts tile tis being set as header in the DOM and each post ihas tile and content. that's what this function does.
+
+function validate ProfileInput (name, email) {
+  var errors = [];
+
+  if (!name || name.trim() === "") {
+  }
+
+  errors.push("Name is required.");
+
+  if (!email || !email.includes ("@")) {
+    errors.push("Valid email is required.");
+  }
+
+  return errors;
+}
+
+// this funciton is basically to calidate the profile inputs set errors as empty array check if name is not there and if after triming the start and end we are getting an empty string as input if it passes then error is being pushed and same happends with email existnece check and astricks is being included int he email if it doesn't another error message is being pushed and returned.
+
+function updateProfile() {
+  var name = document.getElementById("name Input").value;
+  var email = document.getElementById("emailInput").value;
+
+  var validationErrors = validate ProfileInput(name, email);
+  if (validationErrors.length &gt; 0) {
+    alert("Error: " + validationErrors.join(" "));
+    return;
+  }
+}
+
+// function update profile checks the input which is actuallly an updated input form user and validateing it again with validateProfileInput functinon if the error array in the validate profilinput has an value then it alerts with error messge and returns it.
+
+fetch("https://api.example.com/user/profile/update", {
+})
+method: "POST",
+headers: {
+},
+"Content-Type": "application/json"
+body: JSON.stringify({ name: name, email: email })
+.then(function(response) {
+})
+return response.json();
+.then(function(updated Profile) {
+})
+userProfile = updatedProfile;
+renderProfile();
+alert("Profile updated successfully!");
+.catch(function(err) {
+  alert("Failed to update profile: + err);
+});
+
+// here we are calling the backend api with post as method and headers with content type and body with name and email from user input the first then resolveds with the response from api and it parses the json to js object. and the second then assignt eh data received from first promise and render the profile page as default with succesful alert message it any issues happens we are alerting with another error message.
+
+function testValidate Profile() {
+}
+
+console.assert(validateProfileInput("", "test@example.com").length &gt; 0, "Should require name");
+console.assert(validateProfileInput("John", "invalidEmail").length &gt; 0, "Should require valid email");
+console.assert(validateProfileInput("John", "john@example.com").length === 0, "Valid input passes");
+
+window.onload = function() {
+};
+
+initDashboard();
+testValidateProfile();
+};
+
+// this is the initial point wher when the page loads fully  it will call the init dashboard function and run the testvalidate profile test cases. 
+
+1) explained the code with comments above. 
+var userProfile holds the data  same as applies to user posts 
+curentview -> tracks which view should be displayed based on URL hash.
+
+Overall flow:
+Page loads → initDashboard() sets up hash routing and renders initial view.
+Hash is #profile by default:
+renderView() sees profile view.
+If userProfile not loaded → starts fetchUserProfile().
+Once API returns → store userProfile and renderProfile().
+User clicks Posts (changing hash to #posts):
+hashchange triggers → currentView='posts' → renderView().
+If userPosts empty → fetch posts → then render.
+User clicks Edit Profile:
+Show hidden form.
+Save triggers updateProfile() → validate → POST update → rerender profile.
+
+2) Concerns on Global state managment.
+Globals such as user profile , user posts and current view is mutable from anywhere so its is hard to track who changed what and when 
+It is inconsistent UI . not an single state transition matlab if user in profile page then he swithces to post at this time both render profile and render post is being called here in the given snippet.
+
+How to improve (minimal + scalable)
+Use a single state object.
+
+const state = {
+  currentView: 'profile',
+  userProfile: null,
+  userPosts: [],
+  loading: { profile: false, posts: false },
+  requestId: { profile: 0, posts: 0 }
+};
+
+Only update state in one place (e.g., setState(partial)), then call render().
+Using a state object helps because it centralizes all mutable data into a single source of truth.
+ In this dashboard, that prevents race conditions from async fetch calls, avoids rendering with incomplete data, and makes it easy to guard UI updates based on the current view. 
+ It also improves testability because functions no longer depend on global variables.”
+
+ “State doesn’t stop async responses;
+  it stops stale responses from rendering by checking whether the current state still matches the user’s intent.”
+
+
+2b) How can we assume DOM is being sent with latest data.
+currently we can't assume because fetch is async and responses can return out of order.
+
+issues : even if the usr profile doesn't have any data it renders with the current code which result in stale response or crash, then switching between the profile and posts in this case flips the UI unexpectedy.
+
+Fix : user a resquest version / token per resource and ignore stale response.
+let profileReq = 0;
+async function fetchUserProfile() {
+  const reqId = ++profileReq;
+  const res = await fetch("/user/profile");
+  const data = await res.json();
+  if (reqId !== profileReq) return;          // ignore stale response
+  userProfile = data;
+  if (currentView === 'profile') renderProfile();
+}
+
+also while request is in progress render 'loading' / only render when data present.
+
+2b) “How can we assume DOM has latest data?”
+Right now, you cannot assume that:
+
+You render before data arrives (renderProfile() runs with userProfile === null)
+Old network responses can overwrite newer UI (see race conditions below)
+Event handler duplication causes multiple updates
+
+Why this duplicates handlers
+renderProfile() is called:
+
+after fetch resolves (fetchUserProfile().then(... renderProfile()))
+and also from renderView() (often on hash changes)
+
+
+Each call replaces DOM via container.innerHTML = html; and then attaches listeners again
+Worse: the "saveProfileBtn" listener is attached inside the "editProfileBtn" click handler.
+
+So if the user clicks Edit 3 times, you attach 3 Save handlers.
+Next Save click triggers updateProfile() 3 times (duplicate API calls + weird UI).
+
+Fix:
+“I’d put a loading guard in renderView() so we don’t render before data exists, and 
+I’d move click handlers out of renderProfile() into a one-time delegated listener in initDashboard() (or overwrite with onclick) to prevent duplicate Save calls.”
+
+
+2c.
+c. DOM Manipulations and Improvement Suggestions
+=> Issue 1: What is the issue
+The code builds UI using large innerHTML strings. Every time innerHTML is set, the browser destroys and recreates the entire DOM subtree.
+Fix
+Prefer DOM APIs like createElement, appendChild
+Or use templates (<template>) instead of string concatenation
+In frameworks, use declarative rendering
+
+=>Issue 2: Inconsistent element IDs
+What is the issue
+HTML uses id="edit ProfileForm" (with a space) while JS queries editProfileForm (no space).
+
+=>Issue 3: Event listeners are rebound on every render
+What is the issue
+renderProfile() attaches click listeners every time it runs.
+Worse, the Save button listener is added inside the Edit button click handler.
+Why this is bad
+Every render adds new listeners
+Clicking Edit multiple times stacks Save handlers
+One Save click triggers updateProfile() multiple times
+
+Fix
+Bind event handlers once using event delegation (in initDashboard)
+Or overwrite handlers using onclick instead of addEventListener
+
+=> Issue 4: XSS risk due to raw HTML injection
+What is the issue
+User data (name, email, post.content) is injected directly into innerHTML.
+Why this is dangerous
+
+If data contains HTML or scripts, the browser executes it
+Creates a Cross-Site Scripting (XSS) vulnerability
+
+Fix
+
+Use textContent instead of HTML concatenation
+Treat all external data as unsafe by default
+
+
+
+Issue 5 => 
+
+Posts are rendered using container.innerHTML += ... inside a loop.
+Why this is inefficient
+
+Each iteration re-parses and re-renders the entire container
+Causes layout recalculations repeatedly
+Scales poorly for large lists
+
+fix: “DocumentFragment 
+lets us build all DOM nodes in memory without triggering reflow, and then append everything once, avoiding the repeated re-parsing and repaint caused by innerHTML += in loops
+
+
+
+// 3.Examine the "profileDashboard.js" code exhibit and identify
+    // a. any potential race conditions or asynchronous issues related to data fetching.
+    // b.Explain how rapid view switching might lead to UI inconsistencies.
+    // c.Describe minimal changes to ensure that only the latest API response updates the UI.
+
+3a
+     Potential race conditions / async issues in fetching
+    Race: out-of-order responses
+    
+    Suppose you call fetchUserPosts() twice (hash change, re-render, user clicks quickly).
+    Request A (older) returns after Request B (newer).
+    Older response overwrites the latest state (because both write to the same global).
+    Another async issue: “wrong view update”
+    While you’re on Profile, Posts fetch finishes and calls renderPosts().
+    UI suddenly shows posts even though URL says #profile.
+
+3b.
+    b. Rapid View Switching & UI Inconsistencies
+    Why rapid view switching causes UI inconsistencies
+    Scenario interviewers love:
+    User clicks Posts → currentView='posts', starts fetchUserPosts().
+    Immediately clicks Profile → currentView='profile', renders profile.
+    Posts API returns late → .then() runs → calls renderPosts() anyway.
+    ✅ Result: URL is profile but UI shows posts (“ghost update”)
+    The URL and the UI are now out of sync.
+
+3c. How can we get the latest response from API.
+“I add a request counter inside fetchUserProfile and fetchUserPostsand increment it before making the fetch call. I store that incremented value in a local variable. 
+When the response comes back, I compare that local id with the latest id. If it doesn’t match, it means this response is old, so I ignore it and don’t update state or DOM.”
+    
+
+// 4.We are trying to improve test cases of the code, so please suggest
+    // a. How to improve code coverage
+    // b.write/explain how to write minimal test codes
+    // c. How is it useful to use high test infrastructure"
+4a. How to Improve Code Coverage
+    Currently, only the validation logic is tested. To reach 90%+ coverage, you must address the "hidden" logic:
+    Asynchronous Branches: Test both the .then() (success) and .catch() (error) paths of your fetch calls.
+    Edge Case Routing: Test what happens when the hash is empty, invalid (e.g., #unknown), or contains malicious characters.
+    UI State Changes: Ensure that clicking the "Edit Profile" button actually changes the CSS display property of the form.
+    Dependency Injection: Refactor functions to accept data as arguments rather than relying on global variables, making them easier to test in isolation.
+
+“Dependency injection means passing dependencies like fetch, state, or DOM access into a function instead of the function directly using global variables.”
+
+In your snippet, many functions:
+
+directly use global state (userProfile, userPosts, currentView)
+directly use global APIs (fetch, document, window.location)
+
+That makes them hard to test in isolation.
+
+Why this is hard to test
+To test this function, you must:
+
+mock fetch
+rely on global userProfile
+rely on real DOM
+rely on real renderProfile()
+
+That’s too many moving parts for a unit test.
+
+function fetchUserProfile() {
+  return fetch("https://api.example.com/user/profile")
+    .then(r => r.json())
+    .then(data => {
+      userProfile = data;     // global
+      renderProfile();        // global DOM
+    })
+    .catch(err => logMessage("error", err));
+}
+
+
+
+4b. Minimal tests should be unit-focused. Use a framework like Jest 
+Test Case: Default Redirect
+    Goal: Verify that if the page loads without a hash, it defaults to #profile.
+    Logic: Clear window.location.hash, call initDashboard(), and check if window.location.hash equals #profile.
+Test Case: View State Update
+    Goal: Verify currentView updates when the hash changes.
+    Logic: Trigger a hashchange event with #posts and assert that currentView is now 'posts'.
+Test Case: Profile Data Integration
+    Goal: Ensure userProfile is populated correctly after a successful fetch.
+    Logic: Mock a successful JSON response from api.example.com/user/profile. Call fetchUserProfile() and assert that the global userProfile object
+    matches the mock data.
+Test Case: Fetch Error Handling
+    Goal: Ensure the app doesn't crash on API failure.
+    Logic: Mock a 500 Internal Server Error. Call fetchUserProfile() and verify that logMessage was called with the 'error' type.
+Test Case: UI Content Matching
+    Goal: Verify renderProfile injects the correct text into the document.
+    Logic: Manually set userProfile, call renderProfile(), and check if document.getElementById("dashboardContainer").innerHTML contains the user's name.
+Test Case: Toggle Edit Form
+    Goal: Verify the "Edit Profile" button reveals the hidden form.
+    Logic: Call renderProfile(), simulate a click on editProfileBtn, and assert that the editProfileForm style is no longer display: none.
+
+4c.
+     "High test infrastructure" (like CI/CD pipelines, Cypress, or Playwright)
+     Race‑condition detection
+
+🔴 Race‑condition detection -- Bug in the snippet
+
+fetchUserProfile() and fetchUserPosts() are asynchronous.
+If the user switches from #posts → #profile quickly, an older API response can arrive late and overwrite the UI.
+This causes “ghost UI updates” (posts showing on profile view).
+
+✅ How high test infrastructure helps
+
+“With automated tests that simulate slow or out‑of‑order network responses, this race condition is detected immediately.”
+
+ 🔴 Regression prevention -- Bug in the snippet
+
+renderProfile() adds event listeners every time it runs.
+If profile re-renders, clicking Save may trigger updateProfile() multiple times.
+
+✅ How high test infrastructure helps
+
+“Automated tests running on every commit catch regressions where a single click suddenly triggers multiple updates.”
+
+
+DOM correctness validation
+🔴 Bug in the snippet
+
+Broken HTML strings:
+
+Missing quotes
+Incorrect IDs (edit ProfileForm vs editProfileForm)
+
+
+These don’t always throw errors but break the UI silently.
+
+✅ How high test infrastructure helps
+
+“DOM‑level automated tests verify that required elements actually exist and are interactive.”
+
+Routing and navigation correctness
+🔴 Bug in the snippet
+
+initDashboard():
+
+Forces hash to profile
+Calls renderView() even when data is not ready
+
+
+This can cause empty renders or flicker.
+
+✅ How high test infrastructure helps
+
+“Automated routing tests ensure correct behavior for default hash, invalid hash, and rapid hash changes.”
+
+Confidence to refactor safely
+🔴 Bug risk in the snippet
+
+Heavy use of:
+
+Global mutable state
+Manual DOM manipulation
+
+
+Refactoring (e.g., moving to a state object) is risky without tests.
+
+✅ How high test infrastructure helps
+
+“With strong automated coverage, we can refactor global state or rendering logic without fear of breaking existing behavior.”

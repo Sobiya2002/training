@@ -1,0 +1,431 @@
+1) Explain what code snippet is doing?
+2) How to increase readability and maintainability of the code
+3) How to write testcase and increase code coverage and accordingly what data will be mocked
+/**
+* buggy_stock_server.js
+*
+* Node.js HTTP server + classes + buggy logic + unit tests
+* Run server: node buggy_stock_server.js
+* Run tests: npx mocha buggy_stock_server.js
+*/
+ 
+const http = require('http');
+const { expect } = require('chai');
+ 
+// -------------------------
+// Classes with intentional bugs
+// -------------------------
+ 
+class PriceDetails {
+constructor(open, close, high, low) {
+this.open = open;
+this.close = close;
+this.high = high;
+this.low = low;
+}
+ 
+getAverage() {
+ 
+return (this.open + this.close + this.high + this.low) / 0;
+}
+}
+ 
+class StockPrice {
+constructor(symbol, priceDetails) {
+this.symbol = symbol;
+this.priceDetails = priceDetails;
+}
+ 
+calculateChange() {
+ 
+return ((this.priceDetails.close - this.priceDetails.open) / this.priceDetails.open) * 100;
+}
+}
+ 
+class Stock {
+constructor(symbol, companyName, stockPrice) {
+this.symbol = symbol;
+this.companyName = companyName;
+this.stockPrice = stockPrice;
+}
+ 
+getSummary() {
+return {
+symbol: this.symbol,
+companyName: this.companyName,
+averagePrice: this.stockPrice.priceDetails.getAverage(),
+priceChange: this.stockPrice.calculateChange()
+};
+}
+}
+ 
+// -------------------------
+// HTTP Server
+// -------------------------
+const server = http.createServer((req, res) => {
+if (req.url === '/stock' && req.method === 'GET') {
+// Intentional bug: undefined close → NaN
+const details = new PriceDetails(100, undefined, 120, 90);
+const stockPrice = new StockPrice('AAPL', details);
+const stock = new Stock('AAPL', 'Apple Inc.', stockPrice);
+ 
+res.writeHead(200, { 'Content-Type': 'application/json' });
+res.end(JSON.stringify(stock.getSummary()));
+} else {
+res.writeHead(404, { 'Content-Type': 'text/plain' });
+res.end('Not Found');
+}
+});
+ 
+// Start server only if not under test
+if (require.main === module) {
+server.listen(3000, () => {
+console.log('Server running on http://localhost:3000');
+});
+“require.main === module ensures that the server starts only when the file is executed directly using Node, 
+and not when it is imported into another file like a test.
+ This prevents unintended side effects such as servers auto-starting during unit tests.”
+}
+ 
+// -------------------------
+// Mocha Unit Tests
+// -------------------------
+ 
+describe('Stock Classes ', () => {
+it('should pass', () => {
+const details = new PriceDetails(100, 110, 120, 90);
+const avg = details.getAverage();
+expect(avg).to.be.NaN;
+});
+ 
+it('should pass', () => {
+const details = new PriceDetails(100, undefined, 120, 90);
+const stockPrice = new StockPrice('AAPL', details);
+const change = stockPrice.calculateChange();
+expect(change).to.be.NaN;
+});
+ 
+it('should pass', () => {
+const details = new PriceDetails(100, undefined, 120, 90);
+const stockPrice = new StockPrice('AAPL', details);
+const stock = new Stock('AAPL', 'Apple Inc.', stockPrice);
+const summary = stock.getSummary();
+expect(summary.averagePrice).to.be.NaN;
+expect(summary.priceChange).to.be.NaN;
+});
+});
+ 
+module.exports = { PriceDetails, StockPrice, Stock };
+
+Answer: 
+
+Issue 1: PriceDetails.getAverage() divides by 0 (wrong math + Infinity/NaN)
+
+
+getAverage() {
+  return (this.open + this.close + this.high + this.low) / 0;
+}
+
+Division by 0 is invalid for “average”.
+If all numbers are valid → result becomes Infinity (not NaN).
+If any value is undefined → sum becomes NaN, so result is NaN.
+
+Fix (divide by 4 + validate numbers)
+
+getAverage() {
+  const vals = [this.open, this.close, this.high, this.low];
+  if (!vals.every(Number.isFinite)) {
+    throw new Error('Invalid OHLC: all values must be finite numbers');
+  }
+  return (this.open + this.close + this.high + this.low) / 4;
+}
+
+
+Issue 2: Server creates PriceDetails with close = undefined (bad data → NaN/throws)
+const details = new PriceDetails(100, undefined, 120, 90);
+
+This guarantees broken calculations.
+After adding validation, this will throw → your server will crash unless handled.
+
+ keep possibility of invalid data, but catch and respond 400:
+ 
+if (req.url === '/stock' && req.method === 'GET') {
+  try {
+    const details = new PriceDetails(100, undefined, 120, 90); // could be invalid
+    const stockPrice = new StockPrice('AAPL', details);
+    const stock = new Stock('AAPL', 'Apple Inc.', stockPrice);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(stock.getSummary()));
+  } catch (err) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: err.message }));
+  }
+}Using try...catch alone won’t fix this issue because JavaScript doesn’t throw errors for undefined arithmetic or division by zero—it returns NaN. 
+The correct approach is to validate inputs and fail fast inside the domain logic, 
+throwing errors when data is invalid. Then, try...catch should be used only at the API boundary to translate those errors into proper HTTP responses.
+
+
+Issue 3: StockPrice.calculateChange() has no validation and can divide by zero
+Bug:
+calculateChange() {
+  return ((this.priceDetails.close - this.priceDetails.open) / this.priceDetails.open) * 100;
+}
+
+Problems:
+close undefined → NaN
+open 0 → Infinity
+non-numeric values → NaN
+
+Fix
+calculateChange() {
+  const { open, close } = this.priceDetails;
+  if (!Number.isFinite(open) || !Number.isFinite(close)) {
+    throw new Error('Invalid open/close: must be finite numbers');
+  }
+  if (open === 0) {
+    throw new Error('Open price cannot be 0 for percentage change');
+  }
+  return ((close - open) / open) * 100;
+}
+
+
+ Issue 4: Stock.getSummary() can return invalid values (NaN) silently
+ Bug 
+ 
+getSummary() {
+  return {
+    averagePrice: this.stockPrice.priceDetails.getAverage(),
+    priceChange: this.stockPrice.calculateChange()
+  };
+}
+
+“getSummary can return NaN silently because JavaScript allows invalid numeric operations like undefined arithmetic and division by zero without throwing errors.
+ These NaN values propagate through calculations and are later serialized to null in JSON(JSON does not support NaN, Infinity, or -Infinity.), masking the issue. 
+ The fix is to validate inputs and fail fast by throwing errors when data is invalid.”
+
+ Fix: validating the inputs and using try and catch in server creation.
+
+Issue 5: Tests asserting buggy behavior
+bug: 
+expect(summary.averagePrice).to.be.NaN;
+expect(summary.priceChange).to.be.NaN;
+
+Fix: Replace expect(NaN) with assertions on correct values and thrown errors.
+
+TestCases
+
+(test data matrix)
+For PriceDetails.getAverage() tests (no mocks)
+
+Use inputs that hit every path:
+
+Valid data
+(100, 110, 120, 90) → average = 105
+
+Invalid data
+(100, undefined, 120, 90) → should throw / error
+(100, NaN, 120, 90) → should throw / error
+('100', 110, 120, 90) → should throw / error
+
+Edge
+negative values (if you decide they’re invalid → test that it throws; if allowed → test output)
+
+
+For StockPrice.calculateChange() tests (no mocks)
+Valid
+open 100, close 110 → change = 10
+
+Invalid
+
+open 100, close undefined → should throw / error
+
+Edge
+
+open 0, close 10 → should throw / error (division by zero protection)
+
+
+For Stock.getSummary() tests
+You can do both:
+(1) Integration-with-classes (no mocks)
+
+Construct full objects with valid data and assert summary fields.
+
+(2) Isolation test (mock dependencies using Sinon stubs)
+Mock/stub:
+
+stockPrice.priceDetails.getAverage()
+stockPrice.calculateChange()
+
+This proves getSummary() just aggregates (and increases coverage around that method).
+Sinon is widely used for stubs/spies with Mocha/Chai. [blog.logrocket.com], [stackoverflow.com]
+
+For HTTP server route tests (mock req/res)
+You will mock only HTTP layer objects, not business logic:
+Mocked objects:
+
+req = { url: '/stock', method: 'GET' }
+res.writeHead = spy/stub
+res.end = spy/stub
+
+Test cases:
+
+GET /stock returns 200 and JSON
+GET /wrong returns 404
+POST /stock returns 404
+If you add try/catch for invalid data → invalid data returns 400
+
+const request = require('supertest');
+const { expect } = require('chai');
+const { server } = require('../app'); // adjust path to your server file
+
+describe('HTTP Server Tests', () => {
+
+  it('GET /stock should return 200, JSON header, and summary response', async () => {
+    const res = await request(server)
+      .get('/stock')
+      .expect(200);
+
+    // Header validation (res.writeHead)
+    expect(res.headers['content-type']).to.include('application/json');
+
+    // Body validation (res.end)
+    expect(res.body).to.be.an('object');
+    expect(res.body).to.have.all.keys(
+      'symbol',
+      'companyName',
+      'averagePrice',
+      'priceChange'
+    );
+
+    // Fixed values
+    expect(res.body.symbol).to.equal('AAPL');
+    expect(res.body.companyName).to.equal('Apple Inc.');
+
+    // Current buggy behavior (NaN -> null)
+    expect(res.body.averagePrice).to.equal(null);
+    expect(res.body.priceChange).to.equal(null);
+  });
+
+  it('Any other route or method should return 404 Not Found', async () => {
+    const res = await request(server)
+      .get('/invalid-route')
+      .expect(404);
+
+    expect(res.headers['content-type']).to.include('text/plain');
+    expect(res.text).to.equal('Not Found');
+  });
+
+  it('POST /stock should return 404 Not Found', async () => {
+    const res = await request(server)
+      .post('/stock')
+      .expect(404);
+
+    expect(res.text).to.equal('Not Found');
+  });
+
+});
+
+
+
+How to increase code coverage (nyc)
+Add nyc coverage script
+Istanbul docs: put nyc before the test command to get coverage (e.g., nyc mocha). [istanbul.js.org], [github.com]
+Example package.json scripts:
+JSON{  "scripts": {    "test": "mocha",    "coverage": "nyc mocha"  }}
+
+
+// test/stock.spec.js
+const { expect } = require('chai');
+const sinon = require('sinon');
+
+// Adjust this path to wherever your file is located
+const { PriceDetails, StockPrice, Stock, handleRequest } = require('../buggy_stock_server');
+
+describe('Stock snippet - minimal tests (all mocks via sinon.stub)', () => {
+  afterEach(() => sinon.restore());
+
+  /**
+   * 1) getSummary() isolation test
+   * We mock ONLY collaborators: getAverage() and calculateChange()
+   */
+  it('getSummary(): stubs getAverage() and calculateChange() using sinon.stub', () => {
+    // Arrange
+    const details = new PriceDetails(100, 110, 120, 90);
+    const stockPrice = new StockPrice('AAPL', details);
+    const stock = new Stock('AAPL', 'Apple Inc.', stockPrice);
+
+    // ✅ MOCKED (sinon.stub): collaborator method overridden to return deterministic value
+    const avgStub = sinon.stub(stockPrice.priceDetails, 'getAverage').returns(105);
+
+    // ✅ MOCKED (sinon.stub): collaborator method overridden to return deterministic value
+    const changeStub = sinon.stub(stockPrice, 'calculateChange').returns(10);
+
+    // Act
+    const summary = stock.getSummary();
+
+    // Assert
+    expect(summary).to.deep.equal({
+      symbol: 'AAPL',
+      companyName: 'Apple Inc.',
+      averagePrice: 105,
+      priceChange: 10
+    });
+
+    // Assert the stubbed methods were actually used
+    expect(avgStub.calledOnce).to.equal(true);
+    expect(changeStub.calledOnce).to.equal(true);
+  });
+
+  /**
+   * 2) HTTP handler unit tests WITHOUT starting server
+   * We stub res.writeHead and res.end using sinon.stub()
+   * And we pass a minimal fake req object.
+   */
+
+  it('handleRequest(): GET /stock returns 200 and JSON (res methods stubbed)', () => {
+    // ✅ MOCKED INPUT: minimal request object (not sinon, but still a test double)
+    const req = { url: '/stock', method: 'GET' };
+
+    const res = {
+      // ✅ MOCKED (sinon.stub): stub response methods to capture calls
+      writeHead: sinon.stub(),
+      // ✅ MOCKED (sinon.stub): stub response methods to capture calls
+      end: sinon.stub()
+    };
+
+    // Act
+    handleRequest(req, res);
+
+    // Assert status code written
+    expect(res.writeHead.calledOnce).to.equal(true);
+    expect(res.writeHead.firstCall.args[0]).to.equal(200);
+
+    // Assert response body is JSON
+    expect(res.end.calledOnce).to.equal(true);
+    const body = res.end.firstCall.args[0];
+    expect(() => JSON.parse(body)).to.not.throw();
+  });
+
+  it('handleRequest(): unknown route returns 404 (res methods stubbed)', () => {
+    // ✅ MOCKED INPUT: minimal request object
+    const req = { url: '/unknown', method: 'GET' };
+
+    const res = {
+      // ✅ MOCKED (sinon.stub)
+      writeHead: sinon.stub(),
+      // ✅ MOCKED (sinon.stub)
+      end: sinon.stub()
+    };
+
+    // Act
+    handleRequest(req, res);
+
+    // Assert 404
+    expect(res.writeHead.calledOnce).to.equal(true);
+    expect(res.writeHead.firstCall.args[0]).to.equal(404);
+
+    expect(res.end.calledOnce).to.equal(true);
+    expect(res.end.firstCall.args[0]).to.equal('Not Found');
+  });
+});

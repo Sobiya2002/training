@@ -1,0 +1,178 @@
+"use strict";
+/*
+We are building a program to manage a gym's membership. The gym has multiple members, each with a unique ID, name, and membership status. The program allows gym staff to add new members, update members status, and get membership statistics.
+Definitions:
+* A "member" is an object that represents a gym member. It has properties for the ID, name, and membership status.
+* A "membership" is a class which is used for managing members in the gym.
+To begin with, we present you with two tasks:
+1-1) Read through and understand the code below. Please take as much time as necessary, and feel free to run the code.
+1-2) The test for Membership is not passing due to a bug in the code. Make the necessary changes to Membership to fix the bug.
+*/
+/*
+We are currently updating our system to include information about workouts for our members. As part of this update, we have introduced the Workout class, which represents a single workout session for a member. Each object of the Workout class has a unique ID, as well as a start time and end time that are represented in the number of minutes spent from the start of the day. You can assume that all the Workouts are from the same day.
+To implement these changes, we need to add two functions to the Membership class:
+2.1) The `addWorkout` function should be used to add a workout session for a member. If the given member does not exist while calling this function, the workout can be ignored.
+2.2) The `getAverageWorkoutDurations` function should calculate the average duration of workouts for each member in minutes and return the results as a map.
+To assist you in testing these new functions, we have provided the testGetAverageWorkoutDurations function.
+*/
+const assert = require("assert");
+class MembershipStatus {
+  /*
+  Membership Status is of three types: BRONZE, SILVER and GOLD.
+  BRONZE is the default membership a new member gets.
+  SILVER and GOLD are paid memberships for the gym.
+  */
+  static BRONZE = 1;
+  static SILVER = 2;
+  static GOLD = 3;
+}
+class Workout {
+  /*
+  This class represents a single workout session for a member.
+  Each object of the Workout class has a unique ID, as well as
+  a start time and end time that are represented in the number
+  of minutes spent from the start of the day.
+  */
+  constructor(id, startTime, endTime) {
+    this.id = id;
+    this.startTime = startTime;
+    this.endTime = endTime;
+  }
+  getDuration() {
+    return this.endTime - this.startTime;
+  }
+}
+class Member {
+  /* Data about a gym member. */
+    constructor(memberId, name, membershipStatus) {
+    this.memberId = memberId;
+    this.name = name;
+    this.membershipStatus = membershipStatus;
+  }
+  isEqual(other) {
+    if (!(other instanceof Member)) {
+      return false;
+    }
+    return (
+      this.memberId === other.memberId &&
+      this.name === other.name &&
+      this.membershipStatus === other.membershipStatus
+    );
+  }
+  toString() {
+    return `Member ID: ${this.memberId}, Name: ${this.name}, Membership Status: ${this.membershipStatus}`;
+  }
+}
+class Membership {
+  /*
+  Data for managing a gym membership, and methods which staff can
+  use to perform any queries or updates.
+  */
+    constructor() {
+    this.members = [];
+  }
+  addMember(member) {
+    /* Adds a member to the gym */
+    this.members.push(member);
+  }
+  updateMembership(memberId, membershipStatus) {
+    /* Update membership of the given member */
+    for (const member of this.members) {
+      if (member.memberId === memberId) {
+        member.membershipStatus = membershipStatus;
+        break;
+      }
+    }
+  }
+  getMembershipStatistics() {
+    /* Calculates and returns membership statistics for all members */
+    const totalMembers = this.members.length;
+    const totalPaidMembers = this.members.filter(
+      (member) =>
+        member.membershipStatus === MembershipStatus.GOLD
+    ).length;
+    const conversionRate = (totalPaidMembers / totalMembers) * 100;
+    return {
+      totalMembers,
+      totalPaidMembers,
+      conversionRate,
+    };
+  }
+}
+const testMethods = {
+    testMember: () => {
+    const testMember = new Member(1, "John Doe", MembershipStatus.BRONZE);
+    assert.strictEqual(testMember.memberId, 1);
+    assert.strictEqual(testMember.name, "John Doe");
+    assert.strictEqual(testMember.membershipStatus, MembershipStatus.BRONZE);
+  },
+  testMembership: () => {
+    const testMembership = new Membership();
+    const testMember = new Member(1, "John Doe", MembershipStatus.BRONZE);
+    testMembership.addMember(testMember);
+    assert.strictEqual(testMembership.members.length, 1);
+    assert.ok(testMembership.members[0].isEqual(testMember));
+    testMembership.updateMembership(1, MembershipStatus.SILVER);
+    assert.strictEqual(
+      testMembership.members[0].membershipStatus,
+      MembershipStatus.SILVER
+    );
+    const testMember2 = new Member(2, "Alex C", MembershipStatus.BRONZE);
+    testMembership.addMember(testMember2);
+    const testMember3 = new Member(3, "Marie C", MembershipStatus.GOLD);
+    testMembership.addMember(testMember3);
+    const testMember4 = new Member(4, "Joe D", MembershipStatus.SILVER);
+    testMembership.addMember(testMember4);
+    const testMember5 = new Member(5, "June R", MembershipStatus.BRONZE);
+    testMembership.addMember(testMember5);
+    const attendanceStats = testMembership.getMembershipStatistics();
+    assert.strictEqual(attendanceStats.totalMembers, 5);
+    assert.strictEqual(attendanceStats.totalPaidMembers, 3);
+    assert.ok(Math.abs(attendanceStats.conversionRate - 60.00) < 0.1);
+  },
+    testGetAverageWorkoutDurations() {
+    const testMembership = new Membership();
+    const testMember = new Member(12, "John Doe", MembershipStatus.SILVER);
+    testMembership.addMember(testMember);
+    const testMember2 = new Member(22, "Alex Cleeve", MembershipStatus.BRONZE);
+    testMembership.addMember(testMember2);
+    const testMember3 = new Member(31, "Marie Cardiff", MembershipStatus.GOLD);
+    testMembership.addMember(testMember3);
+    const testMember4 = new Member(37, "George Costanza", MembershipStatus.SILVER);
+    testMembership.addMember(testMember4);
+    const testWorkout1 = new Workout(11, 10, 20);
+    const testWorkout2 = new Workout(24, 15, 35);
+    const testWorkout3 = new Workout(32, 50, 90);
+    const testWorkout4 = new Workout(47, 100, 155);
+    const testWorkout5 = new Workout(56, 120, 200);
+    const testWorkout6 = new Workout(62, 300, 400);
+    const testWorkout7 = new Workout(78, 1000, 1010);
+    const testWorkout8 = new Workout(80, 1010, 1045);
+    /*testMembership.addWorkout(12, testWorkout1);
+    testMembership.addWorkout(22, testWorkout2);
+    testMembership.addWorkout(31, testWorkout3);
+    testMembership.addWorkout(12, testWorkout4);
+    testMembership.addWorkout(22, testWorkout5);
+    testMembership.addWorkout(31, testWorkout6);
+    testMembership.addWorkout(12, testWorkout7);
+    testMembership.addWorkout(4, testWorkout8);*/ 
+    /*const averageDurations = testMembership.getAverageWorkoutDurations();
+    assert.ok(Math.abs(averageDurations.get(12) - 25.0) < 0.1);
+    assert.ok(Math.abs(averageDurations.get(22) - 50.0) < 0.1);
+    assert.ok(Math.abs(averageDurations.get(31) - 70.0) < 0.1);
+    assert.ok(!averageDurations.has(4));*/
+  },
+}
+
+// run all tests
+Object.getOwnPropertyNames(testMethods).forEach((func) => {
+  try {
+    console.log(`Running ${func}`);
+    testMethods[func]();
+    console.log('OK');
+  } catch (e) {
+    console.log('FAIL');
+    console.log(e);
+  }
+  console.log('');
+});
