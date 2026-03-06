@@ -36,7 +36,7 @@ function initDashboard() {
   currentView = window.location.hash.substring(1);|
   renderView();
 }
-// first in this function we are registering an listener so upon any action thi slistener works and hash fromthe url will be extracted from 1st index and based upon the return value we are check it its profile or posts it decides the currentview and then we are rendering it. 
+// first in this function we are registering an listener so upon any action this listener works and hash from the url will be extracted from 1st index and based upon the return value we are check it its profile or posts it decides the currentview and then we are rendering it. 
 then as defualt we are setting the current view as profile and window.location.has as profile and checks its existence if it doesn't again we are setting the windo.location.has as porifile and curretview repaeting same extraction from 1st index and renderview function call. 
 
 
@@ -128,7 +128,7 @@ function renderProfile() {
   });
 }
 
-// render profile function get the dashboard container by elemmbt id and check it the container exists if its not logs an error message and returns ir 
+// render profile function get the dashboard container by elemmbt id and check it the container exists if its not logs an error message and returns it. 
 it builds an string of html which contains the data from the input field name and email and it creates an edit profile button and hidden form of user profile name and email.
 then it adds an event listenre if the user clicks on edit prfile button the hidden form displays and allow the usr to edit the name and email. and then it calls the userprofile function 
 
@@ -152,7 +152,8 @@ function renderPosts() {
 "&lt;p&gt;"+post.content + "&lt;/p&gt;" +
 "&lt;/div&gt;";
 
-// the render posts function also get the dashboard container by element id and checks its existence it its not here it logs the error message and retrun the usr posts tile tis being set as header in the DOM and each post ihas tile and content. that's what this function does.
+// the render posts function also get the dashboard container by element id and
+ checks its existence it its not here it logs the error message and retrun the usr posts tile tis being set as header in the DOM and each post ihas tile and content. that's what this function does.
 
 function validate ProfileInput (name, email) {
   var errors = [];
@@ -169,7 +170,7 @@ function validate ProfileInput (name, email) {
   return errors;
 }
 
-// this funciton is basically to calidate the profile inputs set errors as empty array check if name is not there and if after triming the start and end we are getting an empty string as input if it passes then error is being pushed and same happends with email existnece check and astricks is being included int he email if it doesn't another error message is being pushed and returned.
+// this funciton is basically to validate the profile inputs set errors as empty array check if name is not there and if after triming the start and end we are getting an empty string as input if it passes then error is being pushed and same happens with email existence  check and astricks is being included in the email if it doesn't another error message is being pushed and returned.
 
 function updateProfile() {
   var name = document.getElementById("name Input").value;
@@ -182,7 +183,7 @@ function updateProfile() {
   }
 }
 
-// function update profile checks the input which is actuallly an updated input form user and validateing it again with validateProfileInput functinon if the error array in the validate profilinput has an value then it alerts with error messge and returns it.
+// function update profile checks the input which is actuallly an updated input form user and validating it again with validateProfileInput functinon if the error array in the validate profileInput has an value then it alerts with error messge and returns it.
 
 fetch("https://api.example.com/user/profile/update", {
 })
@@ -203,7 +204,7 @@ alert("Profile updated successfully!");
   alert("Failed to update profile: + err);
 });
 
-// here we are calling the backend api with post as method and headers with content type and body with name and email from user input the first then resolveds with the response from api and it parses the json to js object. and the second then assignt eh data received from first promise and render the profile page as default with succesful alert message it any issues happens we are alerting with another error message.
+// here we are calling the backend api with post as method and headers with content type and body with name and email from user input the first then resolves with the response from api and it parses the json to js object. and the second then assign the data received from first promise and render the profile page as default with successful alert message it any issues happens we are alerting with another error message.
 
 function testValidate Profile() {
 }
