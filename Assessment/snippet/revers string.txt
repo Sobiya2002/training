@@ -1,6 +1,6 @@
 {
     # index.js
-```javascript
+```
 var mysql = require('mysql');
  
 function reverse(str, start, end) {
@@ -62,7 +62,7 @@ console.log(reverseWords(s));
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1" // node index.js 
   },
   "keywords": [],
   "author": "",
@@ -89,7 +89,8 @@ Logical Issues:
 }
 
 => the above function has an issue which result returning an undefined data 
-so the the return being set inside the call back makes it asynchornous so before the query could complete the getStringfromDB will return the undefined data to solve this we can use asyn/awiat and promise .
+so the the return being set inside the call back makes it asynchornous 
+so before the query could complete the getStringfromDB will return the undefined data to solve this we can use asyn/awiat and promise .
 
 return result; returns from the inner callback function (the one passed to conn.query)
 It does not return from getStringFromDB
@@ -107,7 +108,7 @@ That’s why the value becomes “reachable” to the caller.
 2) "Select text from sentences where sentenceID = "  + sentenceID
 
 
-enceID` comes from user input (even indirectly), someone can pass:
+`sentenceID` comes from user input (even indirectly), someone can pass:
 - `10 OR 1=1` → returns all rows
 - `10; DROP TABLE sentences; --` (depending on settings)
 
@@ -134,6 +135,7 @@ conn.query("SELECT text FROM sentences WHERE sentenceID = ?", [sentenceID])
     }
     return str.join("").substring(start, end);
 }
+the while( i <= j) swap the middle character twice. instead use i < j
 the issue is with return statement substring (0,2) hellow => he but we need every character so what we can do is we need to reform return statemnt into this
 
 return str.join("").substring(start, end + 1);
@@ -178,17 +180,17 @@ for (let end = 0; end < s.length; end++) {
 }
 ✅ Summary: How each bug affected execution (before the fix)
 Bug 1: Using start - 1
+
 What the code did
 
-JavaScript
 reverse(s, start - 1, end)
-What went wrong
 
+What went wrong
 For the first word, start = 0
 start - 1 becomes -1
-JavaScript strings/arrays do not have index -1
-Effect on execution
+ strings/arrays do not have index -1
 
+Effect on execution
 The reverse function accessed invalid indices
 Characters became undefined or incorrectly swapped
 Output was corrupted from the very first word
@@ -197,17 +199,13 @@ Output was corrupted from the very first word
 Bug 2: Setting start = end
 What the code did
 
-
-
-
-JavaScript
 start = end;
 What went wrong
 
 end points to the space character
 The next word actually starts at end + 1
-Effect on execution
 
+Effect on execution
 The next reversal included the space
 Words were reversed with leading spaces
 Index boundaries drifted, causing cascading errors
@@ -249,13 +247,14 @@ conn.query(sql, params, (err, result) => {
 7) result shape is wrong (you return the entire result object, not text)
 Where
 You do:
-JavaScriptreturn result;Show more lines
-but the comment says “returns "Look there is a fox"”. [Node Mock - Sobiya | Teams], [S K, Sobiya in chat | Teams], [S K, Sobiya in chat | Teams]
+return result
+but the comment says “returns "Look there is a fox"”.
+
 Why it’s an issue
 MySQL result is usually an array of rows (e.g., [{text: "..."}]), not the raw string. Even if async was fixed, reverseWords(result) would still be wrong type.
 Fix
 Return result[0].text (and handle empty rows):
-JavaScriptresolve(result?.[0]?.text ?? "");Show more lines
+resolve(result?.[0]?.text ?? "")
 Why better
 
 Guarantees reverseWords gets a string (clear contract).
@@ -267,3 +266,445 @@ reverseWords assumes s is a string:
 
 if (typeof s !== "string") throw new TypeError("s must be a string");
 
+9) package.json fix
+No dependency changes are required; the only minimal update is pointing the test script to run the entry file.
+node index.js
+
+
+✅ Summary of Fixes + Defending Points
+
+✅ FIX 1 — while (i < j) instead of while (i <= j)
+❌ What was wrong
+while (i <= j)Show more lines
+
+When i === j (middle of an odd‑length string), the code performs a redundant self‑swap
+This does not change the value, but it is unnecessary work and makes reasoning about boundaries harder
+
+✅ Why the fix is correct
+while (i < j)Show more lines
+
+Each character pair is swapped exactly once
+The middle character naturally stays in place
+This is the standard two‑pointer termination condition used in string reversal algorithms [geeksforgeeks.org]
+
+Interview defense:
+
+Using i < j avoids redundant self‑swaps and clearly expresses that each symmetric pair is swapped once.
+
+
+✅ FIX 2 — reverse() returns the full string
+❌ What was wrong
+return str.join("").substring(start, end);Show more lines
+
+Returned only a slice, not the full modified string
+Caller expected a complete string, leading to corrupted concatenation
+
+✅ Why the fix is correct
+return arr.join("");Show more lines
+
+Returns the entire updated string
+Matches the contract expected by reverseWords
+
+Interview defense:
+
+The bug was a function‑contract mismatch: callers expected a full string, but the function returned only a substring.
+
+
+s = "HI Bob"
+start = 0 (first word begins)
+
+Loop iteration: end = 2 (space found at index 2)
+  ❌ reverse(s, start - 1, end)  →  reverse(s, -1, 2)
+  
+  In reverse(): 
+    i = -1, j = 2
+    str[-1] = undefined (invalid index!)
+    Swap attempt corrupts the string
+  
+  s.substring(0, start - 1)  →  s.substring(0, -1)
+  
+  substring(0, -1) returns ""  (empty string!)
+  
+Result: "" + reverse(...) + s.substring(2)
+        = "" + (corrupted) + " Bob"
+        = corrupted output (missing "HI")
+
+✅ Why the fix is correct
+substring(0, start)Show more lines
+
+start already points to the first character of the word
+Keeps slicing boundaries correct
+
+Interview defense:
+
+Using start - 1 introduces invalid indices and removes characters; start is the correct boundary.
+
+
+✅ FIX 4 — Use end - 1 when encountering a space
+❌ What was wrong
+reverse(s, start, end)Show more lines
+
+Includes the space character in the reversal
+
+✅ Why the fix is correct
+reverse(s, start, end - 1)Show more lines
+
+Reverses only the word
+Space remains untouched
+
+Interview defense:
+
+Word boundaries are [start, end - 1] because end points to the space delimiter.
+
+
+✅ FIX 5 — Use s.length - 1 when reversing the last word
+❌ What was wrong
+reverse(s, start, s.length)Show more lines
+
+s.length is out of bounds
+Accessing index length yields undefined, corrupting swaps
+
+✅ Why the fix is correct
+reverse(s, start, s.length - 1)Show more lines
+
+Last valid index is always length - 1
+Prevents undefined values during swapping [geeksforgeeks.org]
+
+Interview defense:
+
+length is a count, not an index; valid indices go from 0 to length - 1.
+
+
+✅ FIX 6 — Use s.length - 1 when reversing the entire string
+❌ What was wrong
+reverse(s, 0, s.length)Show more lines
+
+Same out‑of‑bounds issue
+Final reversal was unreliable
+
+✅ Why the fix is correct
+reverse(s, 0, s.length - 1)Show more lines
+
+Ensures every swap is between valid indices
+Correctly reverses the full string
+
+Interview defense:
+
+Reversing the entire string requires using the last valid index, not the length.
+var mysql = require('mysql'); // kept as in original snippet (even if unused here)
+
+function reverse(str, start, end) {
+  let temp;
+  str = str.split("");
+  var i = start;
+  var j = end;
+
+  // FIX: use i < j (avoid redundant self-swap when i === j)
+  while (i < j) {
+    temp = str[i];
+    str[i] = str[j];
+    str[j] = temp;
+    i++;
+    j--;
+  }
+
+  // FIX: return FULL modified string (not a substring)
+  return str.join("");
+}
+
+// Function to reverse words (same logic preserved)
+function reverseWords(s) {
+  let start = 0;
+
+  for (let end = 0; end < s.length; end++) {
+    if (s[end] == ' ') {
+      // FIX: correct bounds (reverse word [start, end-1], not start-1)
+      s =
+        s.substring(0, start) +
+        reverse(s, start, end - 1) +
+        s.substring(end);
+
+      // FIX: next word starts after the space
+      start = end + 1;
+    }
+  }
+
+  // FIX: reverse the last word using last valid index s.length - 1
+  s = s.substring(0, start) + reverse(s, start, s.length - 1);
+
+  // FIX: reverse the entire string using last valid index s.length - 1
+  s = reverse(s, 0, s.length - 1);
+
+  return s;
+}
+
+
+// __tests__/index.test.js
+jest.mock("mysql", () => ({
+  createConnection: jest.fn(),
+}));
+
+const mysql = require("mysql");
+const { reverseWords, getStringFromDB } = require("../index");
+
+describe("reverseWords()", () => {
+  test("reverses word order for normal sentence", () => {
+    expect(reverseWords("Look there is a fox")).toBe("fox a is there Look");
+  });
+
+  test("handles two words", () => {
+    expect(reverseWords("HI Bob")).toBe("Bob HI");
+  });
+
+  test("single word stays same", () => {
+    expect(reverseWords("hello")).toBe("hello");
+  });
+
+  test("empty string returns empty", () => {
+    expect(reverseWords("")).toBe("");
+  });
+
+  test("non-string input returns empty (DB defensive)", () => {
+    expect(reverseWords(undefined)).toBe("");
+    expect(reverseWords(null)).toBe("");
+    expect(reverseWords(123)).toBe("");
+  });
+
+  test("multiple spaces preserved by algorithm", () => {
+    // Your algorithm preserves spacing patterns between words
+    expect(reverseWords("hello  world")).toBe("world  hello");
+  });
+
+  test("punctuation stays attached to words", () => {
+    expect(reverseWords("hello, world!")).toBe("world! hello,");
+  });
+});
+
+describe("getStringFromDB()", () => {
+  let conn;
+
+  beforeEach(() => {
+    conn = {
+      connect: jest.fn(),
+      query: jest.fn(),
+      end: jest.fn(),
+    };
+    mysql.createConnection.mockReturnValue(conn);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("resolves with text when row exists", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) =>
+      cb(null, [{ text: "Look there is a fox" }])
+    );
+
+    const result = await getStringFromDB(10);
+
+    expect(result).toBe("Look there is a fox");
+    expect(mysql.createConnection).toHaveBeenCalledTimes(1);
+
+    // SQL injection-safe: placeholder + params array [3](https://stackoverflow.com/questions/71949351/how-to-use-named-parameters-in-node-mysql2-prepared-statements)[4](https://blogs.oracle.com/mysql/parameterizing-mysql-queries-in-node)
+    expect(conn.query).toHaveBeenCalledWith(
+      "SELECT text FROM sentences WHERE sentenceID = ?",
+      [10],
+      expect.any(Function)
+    );
+
+    expect(conn.end).toHaveBeenCalledTimes(1);
+  });
+
+  test("resolves with empty string when no rows", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) => cb(null, []));
+
+    const result = await getStringFromDB(999);
+
+    expect(result).toBe("");
+    expect(conn.end).toHaveBeenCalledTimes(1);
+  });
+
+  test("resolves with empty string when row exists but missing text", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) => cb(null, [{}]));
+
+    const result = await getStringFromDB(10);
+
+    expect(result).toBe("");
+    expect(conn.end).toHaveBeenCalledTimes(1);
+  });
+
+  test("rejects if connect fails and closes connection", async () => {
+    conn.connect.mockImplementation((cb) => cb(new Error("connect failed")));
+
+    await expect(getStringFromDB(10)).rejects.toThrow("connect failed");
+
+    expect(conn.end).toHaveBeenCalledTimes(1);
+    expect(conn.query).not.toHaveBeenCalled();
+  });
+
+  test("rejects if query fails and closes connection", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) =>
+      cb(new Error("query failed"))
+    );
+
+    await expect(getStringFromDB(10)).rejects.toThrow("query failed");
+
+    expect(conn.end).toHaveBeenCalledTimes(1);
+  });
+
+  test("is SQL-injection resilient (input treated as value, not SQL)", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) =>
+      cb(null, [{ text: "Safe" }])
+    );
+
+    const injection = "10 OR 1=1";
+    const result = await getStringFromDB(injection);
+
+    expect(result).toBe("Safe");
+    expect(conn.query).toHaveBeenCalledWith(
+      "SELECT text FROM sentences WHERE sentenceID = ?",
+      [injection],
+      expect.any(Function)
+    );
+  });
+});// __tests__/index.test.js
+jest.mock("mysql", () => ({
+  createConnection: jest.fn(),
+}));
+
+const mysql = require("mysql");
+const { reverseWords, getStringFromDB } = require("../index");
+
+describe("reverseWords()", () => {
+  test("reverses word order for normal sentence", () => {
+    expect(reverseWords("Look there is a fox")).toBe("fox a is there Look");
+  });
+
+  test("handles two words", () => {
+    expect(reverseWords("HI Bob")).toBe("Bob HI");
+  });
+
+  test("single word stays same", () => {
+    expect(reverseWords("hello")).toBe("hello");
+  });
+
+  test("empty string returns empty", () => {
+    expect(reverseWords("")).toBe("");
+  });
+
+  test("non-string input returns empty (DB defensive)", () => {
+    expect(reverseWords(undefined)).toBe("");
+    expect(reverseWords(null)).toBe("");
+    expect(reverseWords(123)).toBe("");
+  });
+
+  test("multiple spaces preserved by algorithm", () => {
+    // Your algorithm preserves spacing patterns between words
+    expect(reverseWords("hello  world")).toBe("world  hello");
+  });
+
+  test("punctuation stays attached to words", () => {
+    expect(reverseWords("hello, world!")).toBe("world! hello,");
+  });
+});
+
+describe("getStringFromDB()", () => {
+  let conn;
+
+  beforeEach(() => {
+    conn = {
+      connect: jest.fn(),
+      query: jest.fn(),
+      end: jest.fn(),
+    };
+    mysql.createConnection.mockReturnValue(conn);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("resolves with text when row exists", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) =>
+      cb(null, [{ text: "Look there is a fox" }])
+    );
+
+    const result = await getStringFromDB(10);
+
+    expect(result).toBe("Look there is a fox");
+    expect(mysql.createConnection).toHaveBeenCalledTimes(1);
+
+    // SQL injection-safe: placeholder + params array [3](https://stackoverflow.com/questions/71949351/how-to-use-named-parameters-in-node-mysql2-prepared-statements)[4](https://blogs.oracle.com/mysql/parameterizing-mysql-queries-in-node)
+    expect(conn.query).toHaveBeenCalledWith(
+      "SELECT text FROM sentences WHERE sentenceID = ?",
+      [10],
+      expect.any(Function)
+    );
+
+    expect(conn.end).toHaveBeenCalledTimes(1);
+  });
+
+  test("resolves with empty string when no rows", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) => cb(null, []));
+
+    const result = await getStringFromDB(999);
+
+    expect(result).toBe("");
+    expect(conn.end).toHaveBeenCalledTimes(1);
+  });
+
+  test("resolves with empty string when row exists but missing text", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) => cb(null, [{}]));
+
+    const result = await getStringFromDB(10);
+
+    expect(result).toBe("");
+    expect(conn.end).toHaveBeenCalledTimes(1);
+  });
+
+  test("rejects if connect fails and closes connection", async () => {
+    conn.connect.mockImplementation((cb) => cb(new Error("connect failed")));
+
+    await expect(getStringFromDB(10)).rejects.toThrow("connect failed");
+
+    expect(conn.end).toHaveBeenCalledTimes(1);
+    expect(conn.query).not.toHaveBeenCalled();
+  });
+
+  test("rejects if query fails and closes connection", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) =>
+      cb(new Error("query failed"))
+    );
+
+    await expect(getStringFromDB(10)).rejects.toThrow("query failed");
+
+    expect(conn.end).toHaveBeenCalledTimes(1);
+  });
+
+  test("is SQL-injection resilient (input treated as value, not SQL)", async () => {
+    conn.connect.mockImplementation((cb) => cb(null));
+    conn.query.mockImplementation((sql, params, cb) =>
+      cb(null, [{ text: "Safe" }])
+    );
+
+    const injection = "10 OR 1=1";
+    const result = await getStringFromDB(injection);
+
+    expect(result).toBe("Safe");
+    expect(conn.query).toHaveBeenCalledWith(
+      "SELECT text FROM sentences WHERE sentenceID = ?",
+      [injection],
+      expect.any(Function)
+    );
+  });
+});

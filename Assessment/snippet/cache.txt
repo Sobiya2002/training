@@ -1,3 +1,17 @@
+Script load:
+
+IIFE runs → defines functions → exposes window.app
+
+When main() is called:
+
+Starts two parallel flows
+
+"api/data" → resolve → process → call again → resolve cached → done
+"error" → reject → catch → done
+
+The key nuance in wording
+It’s not that the handler returns a “resolved promise immediately”.
+It returns a pending Promise which will resolve about 1 second later (because of the setTimeout).
 
 (function () {
 
@@ -118,11 +132,408 @@ main,
    }
  
  Code Explanation:
- Yes, fetchData does not call a real API.
+Yes, fetchData does not call a real API.
 It simulates an asynchronous API call using setTimeout,
 checks whether the endpoint exists,
 checks whether a cached response is already available,
 and if not, generates mock data locally, stores it in cache, and resolves the promise.
+
+1) Variable naming & structure — ALL your points, nothing skipped
+A) Names should reflect intent (avoid generic)
+
+cache is acceptable, but clearer as responseCache or cacheByEndpoint so a reader instantly knows what is cached and keyed by what.
+fetchData(endpoint) is misleading because it doesn’t really fetch a network call; it simulates + caches. Better names you suggested: fetchWithCache or getDataWithCache.
+In processData, the nested compute() function is unnecessary extra nesting and should be inlined for readability. ✅ (This was the missing point you flagged.)
+
+B) Fix exposed API naming + typo
+
+window.app = { …, _calche: cache } looks like a typo; should be _cache.
+Why it matters: typos reduce trust and consumers won’t find the expected property.
+
+C) Consistent formatting & spacing
+
+You pointed out console. log and window. app (spaces around the dot). This hurts readability and can be syntactically problematic.
+Maintainability-wise: consistent formatting is non-negotiable.
+
+D) Avoid “magic strings”
+
+"api/data" and "error" are hard-coded in multiple places → define constants like:
+const ENDPOINTS = { DATA: "api/data", ERROR: "error" };
+
+E) Clarify module boundaries
+
+IIFE module pattern is good, but public API should expose only what’s needed.
+Exposing internal cache (even by mistake) encourages external mutation and makes behavior unpredictable.
+
+
+2) Error handling — ALL your points, nothing skipped
+A) More robust input validation
+
+Current validation: if (!endpoint) treats "", null, undefined same — but doesn’t guard against non-string endpoints (objects, numbers).
+Add type checks for reliability + clearer errors.
+
+B) Errors should be consistent + informative
+
+Two error cases: "No endpoint provided" and "Simulated network error!" are fine for small demo.
+But you explicitly noted: for bigger systems, include endpoint in errors so it’s easy to track which endpoint failed.
+
+C) Fix .finally() usage (structural + clarity)
+
+Intent is correct: log completion regardless of success/failure.
+Current .finally is malformed and doesn’t interpolate endpoint.
+Maintainable version should clearly log “which endpoint finished” using template strings.
+
+D) Avoid wrong logging level
+
+In "error" test flow, .then() logs using console.error("This should be log:", data) which is confusing because .then() is success-path.
+
+E) Consistent rejection handling per flow
+
+Two flows in main() have separate catches — that’s fine.
+But you want consistent formatting: include flow label and use the same error format helper to keep logs uniform.
+(This aligns with using a custom error utility pattern in your internal doc too.)
+
+
+Code Comprehensibility Issues
+(How the current code makes the flow harder to understand, and how the fix improves clarity)
+
+Issue 1: Unnecessary compute() function inside processData
+🔴 Current Issue
+function processData(data) {
+  const startTime = Date.now();
+
+  function compute() {
+    return data.split("").reverse().join("");
+  }
+
+  const result = compute();
+  console.log("Processed data in", Date.now() - startTime, "ms");
+  return result;
+}
+
+
+❌ Impact on Flow
+The reader has to jump one extra level to understand what processing is happening.
+compute() is used only once, so it adds cognitive overhead without reuse.
+When scanning code quickly (interview / debugging), the reader asks:
+
+“Why is there a nested function? Is there more logic later?”
+
+
+
+This slows comprehension even though behavior is simple.
+✅ Fix
+Inline the logic:
+
+function processData(data) {
+  const startTime = Date.now();
+  const result = data.split("").reverse().join("");
+  console.log("Processed data in", Date.now() - startTime, "ms");
+  return result;
+}
+
+
+✅ What This Fix Resolves
+
+Execution flow becomes linear and obvious
+No unnecessary abstraction
+Reader instantly understands:
+
+“processData reverses a string and logs timing”
+
+
+
+
+Issue 2: processData name is too generic
+🔴 Current Issue
+
+processData does string reversal + timing, but name does not convey that.
+
+❌ Impact on Flow
+
+Future readers don’t know what “processing” means without reading the body.
+Makes higher-level code harder to read:
+const processed = processData(data);
+→ processed how?
+
+✅ Fix
+Rename:
+reverseStringWithTiming(data)
+✅ What This Fix Resolves
+
+Call sites become self-documenting
+Reduces need for comments
+Improves readability during interviews and debugging
+
+
+Issue 3: Chained .then() hides execution order
+🔴 Current Issue
+
+fetchData("api/data")
+  .then(data => {
+    const processed = processData(data);
+    return fetchData("api/data");
+  })
+  .then(cachedData => {
+    console.log(cachedData);
+  });
+
+
+❌ Impact on Flow
+Async flow is not top-to-bottom
+As logic grows, mental stack increases:
+
+“Which .then() runs when? What returns to what?”
+
+
+
+✅ Fix
+Use async/await:
+async function main() {  const data = await fetchData("api/data");
+  const processed = processData(data);  
+  const cachedData = await fetchData("api/data");}
+  
+✅ What This Fix Resolves
+Flow reads like synchronous code
+“What happens when” is obvious
+Easier to reason about error paths
+
+
+Issue 4: Misleading comment about cache
+🔴 Current Issue
+return fetchData("api/data"); // Using cache now
+❌ Impact on Flow
+
+Comment claims cache is used immediately
+Reality: cache is checked after 1 second
+Reader trusts comment → misunderstands timing
+
+✅ Fix
+Either:
+
+Move cache check outside setTimeout (performance fix), or
+Update comment to match behavior
+
+✅ What This Fix Resolves
+
+Prevents misunderstanding of async behavior
+Keeps comments aligned with reality
+
+
+2️⃣ Performance Issues
+(How the current implementation affects runtime behavior and scalability)
+
+Performance Issue 1: Cached data still waits 1 second
+🔴 Current Issue
+setTimeout(() => {  if (cache[endpoint]) {    resolve(cache[endpoint]);    return;  }}, 1000);
+❌ Impact on Execution Flow
+
+Even cached responses:
+wait 1 second
+consume a timer
+
+Cache does not reduce latency
+Under load:
+
+unnecessary timers pile up
+wasted event-loop cycles
+
+✅ Fix
+Check cache before scheduling async work:
+if (cache[endpoint]) {  return Promise.resolve(cache[endpoint]);}
+✅ What This Fix Resolves
+
+Cached calls return immediately
+Real performance benefit from caching
+Fewer timers → less event-loop pressure
+
+Performance Issue 2: Duplicate work under concurrent calls (cache stampede)
+
+🔴 Current Issue
+Every call does this:
+setTimeout(() => { /* same work */ }, 1000);
+❌ Impact on Execution Flow
+If this happens:
+fetchData("api/data");
+fetchData("api/data");
+fetchData("api/data");
+Then:
+
+3 timers are scheduled
+Same work runs 3 times
+Cache helps only after first finishes
+
+This causes:
+duplicated work
+wasted CPU
+poor scalability
+
+✅ Fix
+Track in‑flight promises:
+if (inFlight.has(endpoint)) {  return inFlight.get(endpoint);}
+✅ What This Fix Resolves
+
+Only one async operation per endpoint
+All callers share same Promise
+Eliminates cache stampede
+Scales safely under load
+
+Performance Issue 3: processData blocks the event loop
+🔴 Current Issue
+data.split("").reverse().join("");
+Runs synchronously on main thread.
+
+❌ Impact on Execution Flow
+When:
+data is large
+many calls resolve together
+
+Then:
+Event loop is blocked
+Timers don’t fire
+Promises are delayed
+UI freezes (browser)
+
+This is event-loop blocking.
+✅ Fix
+Offload heavy processing:
+
+Worker thread (Node / Browser), or
+Chunk processing
+
+✅ What This Fix Resolves
+
+Keeps event loop responsive
+Timers and promises execute on time
+Prevents UI freeze under load
+
+
+“The main issues were unnecessary nesting that reduced readability, misleading async flow, and performance problems like delayed cache responses, duplicated async work, 
+and event‑loop blocking. Fixing these made the execution flow linear, predictable, and scalable under load.”
+
+3. Given the asynchronous nature of 'fetchData and the processing logic in processiate, would you design tests to ensure their reliability?
+Test strategy for fetchData(endpoint) (async + cache)
+1) Input validation / rejection
+What to test
+
+When endpoint is missing/empty, the Promise rejects with "No endpoint provided".
+
+How
+
+Use await expect(fetchData()).rejects.toThrow("No endpoint provided") (Jest style).
+Also test "" (empty string) because !endpoint catches it too. 
+
+
+2) Simulated error path
+What to test
+
+When endpoint is "error", Promise rejects with "Simulated network error!".
+
+How
+
+await expect(fetchData("error")).rejects.toThrow("Simulated network error!") 
+
+
+3) Success path returns expected data
+What to test
+
+For a normal endpoint (e.g., "api/data"), Promise resolves to:
+
+Sample data from: api/data
+How
+
+await expect(fetchData("api/data")).resolves.toBe("Sample data from: api/data") 
+
+
+4) Caching behavior
+What to test
+
+Second call with the same endpoint returns the same value and comes from the cache (logically).
+Because the cache is internal, you validate caching by verifying:
+
+first call resolves to expected value
+second call resolves to the same value (and optionally: cache object contains the key if exposed via safe accessor in improved version)
+How (practical & deterministic)
+Call await fetchData("api/data") twice and assert equal.
+If you refactor to expose a safe getCacheSnapshot(),
+ assert it contains "api/data" key. (In the current snippet, cache is internal; you can still test “same result on second call”.)
+
+
+5.Timing / async determinism with fake timers
+Because setTimeout(..., 1000) makes tests slow and flaky, use fake timers.
+What to test
+
+Promise does not resolve immediately.
+After advancing time by 1000ms, it resolves.
+
+How
+
+In Jest: jest.useFakeTimers()
+Call const p = fetchData("api/data")
+jest.advanceTimersByTime(999) → still pending
+jest.advanceTimersByTime(1) → resolves
+
+This makes async tests fast and reliable
+
+
+Test strategy for processData(data) (sync CPU work)
+1) Correct transformation
+What to test
+
+It reverses a string correctly.
+
+Examples:
+
+"abc" → "cba"
+"Sample data" → "atad elpmaS"
+
+How
+
+expect(processData("abc")).toBe("cba") 
+
+
+2) Edge cases
+What to test
+
+Empty string: "" → ""
+Single char: "a" → "a"
+Unicode / emoji (string reversal can be tricky with surrogate pairs; at least acknowledge and test a simple case)
+
+How
+
+expect(processData("")).toBe("")
+expect(processData("a")).toBe("a") 
+
+
+3) Performance logging doesn’t break output
+Your function logs processing time:
+console.log("Processed data in", ... , "ms");
+What to test
+
+It still returns correct result even when logging occurs.
+
+How
+
+Spy/mocking: jest.spyOn(console, "log")
+Assert it was called with "Processed data in" (optional)
+Assert return value is correct
+
+This keeps tests clean (no noisy console during test run). 
+
+✅ “Integration” test: fetchData + processData together
+What to test
+
+When fetchData("api/data") resolves, processing produces the reversed expected string.
+
+How
+
+const data = await fetchData("api/data")
+const processed = processData(data)
+assert processed === reverse("Sample data from: api/data")
+
+
+
+
 
 })();
  1. Examine the Code Exhibit and identify areas where code legibility or maintainebility con se improved. Your answer should focus on:
@@ -138,20 +549,17 @@ it simulates fetching and adds caching. A clearer name would be fetchWithCache o
 In processData, the nested function compute() adds extra nesting without much benefit; this can be inlined to improve readability. 
 
 B. Fix exposed API naming and typos
-
 _calche: cache looks like a typo (likely intended _cache). Typos like this reduce trust and make debugging harder because consumers of window.app won’t find the expected property. 
 
 C. Use consistent formatting and spacing
 The snippet includes inconsistent spacing such as:
-
 console. log and window. app (spaces around the dot) which makes the code harder to read and is also syntactically problematic in JS in many contexts. 
 Even if you “discuss later,” from a maintainability perspective, consistent formatting is a must. 
 
 D. Avoid “magic strings” scattered in logic
-
 "api/data" and "error" are hard-coded in multiple places. Introduce constants to reduce mistakes and make future changes easy. 
 Example conceptually: 
-JavaScriptconst ENDPOINTS = { DATA: "api/data", ERROR: "error" };
+const ENDPOINTS = { DATA: "api/data", ERROR: "error" };
 
 E. Clarify module boundaries
 The IIFE (Immediately invoked function expression)
@@ -166,7 +574,7 @@ module pattern is good, but the public API (window.app = {...}) should expose on
 A. More robust input validation
 
 Right now, the only validation is:
-JavaScriptif (!endpoint) reject(new Error("No endpoint provided"));
+if (!endpoint) reject(new Error("No endpoint provided"));
 This treats "", null, undefined all the same, but doesn’t guard against non-string values (like objects).
  Adding type checks improves reliability and error clarity. 
 
@@ -183,7 +591,7 @@ C. Fix the .finally() usage (conceptually and structurally)
 
 The intention is: “log completion regardless of success or failure.”
 But the current .finally block is malformed:
-JavaScript}).finally(() = (  console. log('fetchData call completed for endpoint:*, endpoint);});
+}).finally(() = (  console. log('fetchData call completed for endpoint:*, endpoint);});
 Even ignoring syntax, the maintainability issue is:
 
 The log message is unclear and doesn’t actually interpolate endpoint correctly (it looks like it meant to include the endpoint). 
@@ -195,12 +603,11 @@ and do it using proper string interpolation
 
 D. Avoid incorrect logging level/meaning
 In the "error" endpoint test, the .then contains:
-JavaScriptconsole.error("This should be log:", data);
+console.error("This should be log:", data);
 That’s confusing: .then is the success path, but it logs as error. It reduces clarity when debugging. 
 
 E. Consider handling rejections per flow
 There are two separate flows in main():
-
 "api/data" chain with its own .catch
 "error" chain with its own .catch
 
@@ -230,11 +637,11 @@ This is acceptable, but can be clearer if structured as “guard clauses + main 
  (and possibly extracted helpers: getCached, simulateNetwork). 
 
  Before (harder to scan)
-JavaScriptif (endpoint === "error") {  reject(new Error("Simulated network error!"));} 
+if (endpoint === "error") {  reject(new Error("Simulated network error!"));} 
 else {  const data = `Sample data from: ${endpoint}`;  cache[endpoint] = data;  resolve(data);}
 
 ✅ After (guard + main path)
-JavaScriptif (endpoint === "error") {  reject(new Error("Simulated network error!"));  return;}// 
+if (endpoint === "error") {  reject(new Error("Simulated network error!"));  return;}// 
 ✅ main path (normal success)const data = `Sample data from: ${endpoint}`;cache[endpoint] = data;resolve(data);
 
 ✅ Full function flow now reads like English:
@@ -248,7 +655,7 @@ No else, no mental nesting.
 
 C. Improve comments to match behavior -- using cache now is confusing instead we should have better comment like in real it resolves after 1 second.
 The comment says:
-JavaScriptreturn fetchData("api/data"); // Using cache now
+return fetchData("api/data"); // Using cache now
 This is partially true, but it still waits 1 second because the cache check is inside setTimeout.
  That mismatch between comment and behavior can confuse readers. 
 
@@ -259,14 +666,14 @@ a clearer name might be reverseStringWithTiming or at least a short comment expl
 
 E. Make public API intentional and safe - causes external mutation keeping it inside the function is what a best practice.
 Right now the script does:
-JavaScriptwindow.app = { main, fetchData, processData, _calche: cache }
+window.app = { main, fetchData, processData, _calche: cache }
 For comprehensibility and stability:
 exposing internal cache (even accidentally) makes behavior harder to reason about because outside code can mutate it.
 a maintainable pattern is to expose only functions, and if you must expose cache for debugging, expose a safe accessor (read-only copy).
 
 ✅ Best practice
 Internal state (like cache) should stay private inside the module.
-JavaScript(function () {  let cache = {};   // ✅ private  function fetchData() { ... }  window.app = { fetchData };
+(function () {  let cache = {};   // ✅ private  function fetchData() { ... }  window.app = { fetchData };
  // ✅ expose behavior, not state})();
 
 Why?
@@ -317,12 +724,12 @@ tracking in‑flight requests and reusing the same Promise avoids redundant proc
 
 Where the issue is in your code
 Every call to fetchData("api/data") does this:
-JavaScriptsetTimeout(() => {  // work}, 1000);
+setTimeout(() => {  // work}, 1000);
 There is no check for:
 
 “Is this request already in progress?”
 You keep a structure like:
-JavaScriptinFlightRequests = {  "api/data": Promise( pending )}Show more lines
+inFlightRequests = {  "api/data": Promise( pending )}
 When:
 
 request starts → store the Promise
@@ -339,7 +746,7 @@ fetchData("api/data")
 
 What happens with MANY calls at the same time (problem)
 Imagine this happens quickly:
-JavaScriptfetchData("api/data");fetchData("api/data");fetchData("api/data");
+fetchData("api/data");fetchData("api/data");fetchData("api/data");
 Timeline
 Time 0:
 - 3 calls made
@@ -362,7 +769,7 @@ wasted CPU
 - How can performance be monitored effectively?
 1. Measure execution time (already partially done) - add log timing in fetchData function when the function starts and end of the flow and if error throws inbetween
 You already log timing in processData:
-JavaScriptconst startTime = Date.now();console.log("Processed data in", Date.now() - startTime, "ms");Show more lines
+const startTime = Date.now();console.log("Processed data in", Date.now() - startTime, "ms");
 Improvement
 
 Use consistent metrics for both fetch and processing
@@ -396,122 +803,3 @@ Avoid blocking the event loop with synchronous processing
 Where: processData performs CPU‑bound work synchronously, which delays timers and promise callbacks when load increases.
 Fix: Offload heavy processing to a worker/background task or break work into smaller chunks so the event loop remains responsive.
 
-3. Given the asynchronous nature of 'fetchData and the processing logic in processiate, would you design tests to ensure their reliability?
-Test strategy for fetchData(endpoint) (async + cache)
-1) Input validation / rejection
-What to test
-
-When endpoint is missing/empty, the Promise rejects with "No endpoint provided".
-
-How
-
-Use await expect(fetchData()).rejects.toThrow("No endpoint provided") (Jest style).
-Also test "" (empty string) because !endpoint catches it too. [DU03KaratQuestions | Excel]
-
-
-2) Simulated error path
-What to test
-
-When endpoint is "error", Promise rejects with "Simulated network error!".
-
-How
-
-await expect(fetchData("error")).rejects.toThrow("Simulated network error!") [DU03KaratQuestions | Excel]
-
-
-3) Success path returns expected data
-What to test
-
-For a normal endpoint (e.g., "api/data"), Promise resolves to:
-
-Sample data from: api/data
-How
-
-await expect(fetchData("api/data")).resolves.toBe("Sample data from: api/data") [DU03KaratQuestions | Excel]
-
-
-4) Caching behavior
-What to test
-
-Second call with the same endpoint returns the same value and comes from the cache (logically).
-Because the cache is internal, you validate caching by verifying:
-
-first call resolves to expected value
-second call resolves to the same value (and optionally: cache object contains the key if exposed via safe accessor in improved version)
-How (practical & deterministic)
-Call await fetchData("api/data") twice and assert equal.
-If you refactor to expose a safe getCacheSnapshot(),
- assert it contains "api/data" key. (In the current snippet, cache is internal; you can still test “same result on second call”.)
-
-
-5.Timing / async determinism with fake timers
-Because setTimeout(..., 1000) makes tests slow and flaky, use fake timers.
-What to test
-
-Promise does not resolve immediately.
-After advancing time by 1000ms, it resolves.
-
-How
-
-In Jest: jest.useFakeTimers()
-Call const p = fetchData("api/data")
-jest.advanceTimersByTime(999) → still pending
-jest.advanceTimersByTime(1) → resolves
-
-This makes async tests fast and reliable
-
-
-Test strategy for processData(data) (sync CPU work)
-1) Correct transformation
-What to test
-
-It reverses a string correctly.
-
-Examples:
-
-"abc" → "cba"
-"Sample data" → "atad elpmaS"
-
-How
-
-expect(processData("abc")).toBe("cba") [DU03KaratQuestions | Excel]
-
-
-2) Edge cases
-What to test
-
-Empty string: "" → ""
-Single char: "a" → "a"
-Unicode / emoji (string reversal can be tricky with surrogate pairs; at least acknowledge and test a simple case)
-
-How
-
-expect(processData("")).toBe("")
-expect(processData("a")).toBe("a") [DU03KaratQuestions | Excel]
-
-
-3) Performance logging doesn’t break output
-Your function logs processing time:
-JavaScriptconsole.log("Processed data in", ... , "ms");Show more lines
-What to test
-
-It still returns correct result even when logging occurs.
-
-How
-
-Spy/mocking: jest.spyOn(console, "log")
-Assert it was called with "Processed data in" (optional)
-Assert return value is correct
-
-This keeps tests clean (no noisy console during test run). [DU03KaratQuestions | Excel]
-
-✅ “Integration” test: fetchData + processData together
-What to test
-
-When fetchData("api/data") resolves, processing produces the reversed expected string.
-
-How
-
-const data = await fetchData("api/data")
-const processed = processData(data)
-assert processed === reverse("Sample data from: api/data")

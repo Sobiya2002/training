@@ -169,45 +169,78 @@ class Membership {
   }
   
   
+// getDuePayments() {
+//   const duePayments = {};
+//   const rules = {
+//     [MembershipStatus.BRONZE]: { free: 1, rate: 10 },
+//     [MembershipStatus.SILVER]: { free: 3, rate: 8 },
+//     [MembershipStatus.GOLD]:   { free: 5, rate: 6 }
+//   };
+
+//   for (const member of this.members) {
+//     const workouts = member.workouts || [];
+
+//     if (workouts.length === 0) {
+//       duePayments[member.memberId] = 0;
+//       continue;
+//     }
+
+    
+//     const sortedWorkouts = workouts.slice().sort((a, b) => a.id - b.id);
+
+//     const { free, rate } = rules[member.membershipStatus];
+
+//     let total = 0;
+
+    
+//     for (let i = free; i < sortedWorkouts.length; i++) {
+//       const workout = sortedWorkouts[i];
+//       const minutes = workout.endTime - workout.startTime;
+//       const hours = Math.ceil(minutes / 60); 
+//       total += hours * rate;
+//     }
+//     duePayments[member.memberId] = total;
+//   }
+
+//   return duePayments;
+// }
+
 getDuePayments() {
-  const duePayments = {};
-  const rules = {
-    [MembershipStatus.BRONZE]: { free: 1, rate: 10 },
-    [MembershipStatus.SILVER]: { free: 3, rate: 8 },
-    [MembershipStatus.GOLD]:   { free: 5, rate: 6 }
+ const duePayments = {};
+
+ const rules = {
+  [MembershipStatus.BRONZE]: {free: 1, rate: 10},
+  [MembershipStatus.SILVER]: {free: 3, rate: 8},
+  [MembershipStatus.GOLD]: {free: 5, rate: 6}
   };
 
-  for (const member of this.members) {
-    const workouts = member.workouts || [];
+  for ( const member of this.members) {
+    const workout = member.workouts || [];
 
-    if (workouts.length === 0) {
-      duePayments[member.memberId] = 0;
+    if ( workout.length === 0) {
+      duePayments [member.memberId] = 0;
       continue;
     }
 
-    
-    const sortedWorkouts = workouts.slice().sort((a, b) => a.id - b.id);
+    const sortedWorkouts = workout.sort((a, b) => a.id - b.id);
 
-    const { free, rate } = rules[member.membershipStatus];
+    const {free, rate} = rules [member.membershipStatus];
 
     let total = 0;
 
-    
-    for (let i = free; i < sortedWorkouts.length; i++) {
+    for (let i = free; i < sortedWorkouts.length; i++){
+      console.log('i', i);
       const workout = sortedWorkouts[i];
       const minutes = workout.endTime - workout.startTime;
-      const hours = Math.ceil(minutes / 60); 
+      const hours = Math.ceil(minutes/60);
       total += hours * rate;
     }
     duePayments[member.memberId] = total;
+    console.log('duePayments', duePayments);
   }
-
   return duePayments;
-}
-
-
-
-}
+ }
+};
 
 const testMethods = {
     testMember: () => {
