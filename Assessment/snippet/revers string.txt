@@ -275,13 +275,13 @@ node index.js
 
 ✅ FIX 1 — while (i < j) instead of while (i <= j)
 ❌ What was wrong
-while (i <= j)Show more lines
+while (i <= j)
 
 When i === j (middle of an odd‑length string), the code performs a redundant self‑swap
 This does not change the value, but it is unnecessary work and makes reasoning about boundaries harder
 
 ✅ Why the fix is correct
-while (i < j)Show more lines
+while (i < j)
 
 Each character pair is swapped exactly once
 The middle character naturally stays in place
@@ -294,13 +294,13 @@ Using i < j avoids redundant self‑swaps and clearly expresses that each symmet
 
 ✅ FIX 2 — reverse() returns the full string
 ❌ What was wrong
-return str.join("").substring(start, end);Show more lines
+return str.join("").substring(start, end);
 
 Returned only a slice, not the full modified string
 Caller expected a complete string, leading to corrupted concatenation
 
 ✅ Why the fix is correct
-return arr.join("");Show more lines
+return arr.join("");
 
 Returns the entire updated string
 Matches the contract expected by reverseWords
@@ -330,7 +330,7 @@ Result: "" + reverse(...) + s.substring(2)
         = corrupted output (missing "HI")
 
 ✅ Why the fix is correct
-substring(0, start)Show more lines
+substring(0, start)
 
 start already points to the first character of the word
 Keeps slicing boundaries correct
@@ -342,12 +342,12 @@ Using start - 1 introduces invalid indices and removes characters; start is the 
 
 ✅ FIX 4 — Use end - 1 when encountering a space
 ❌ What was wrong
-reverse(s, start, end)Show more lines
+reverse(s, start, end)
 
 Includes the space character in the reversal
 
 ✅ Why the fix is correct
-reverse(s, start, end - 1)Show more lines
+reverse(s, start, end - 1)
 
 Reverses only the word
 Space remains untouched
@@ -359,13 +359,13 @@ Word boundaries are [start, end - 1] because end points to the space delimiter.
 
 ✅ FIX 5 — Use s.length - 1 when reversing the last word
 ❌ What was wrong
-reverse(s, start, s.length)Show more lines
+reverse(s, start, s.length)
 
 s.length is out of bounds
 Accessing index length yields undefined, corrupting swaps
 
 ✅ Why the fix is correct
-reverse(s, start, s.length - 1)Show more lines
+reverse(s, start, s.length - 1)
 
 Last valid index is always length - 1
 Prevents undefined values during swapping [geeksforgeeks.org]
@@ -377,13 +377,13 @@ length is a count, not an index; valid indices go from 0 to length - 1.
 
 ✅ FIX 6 — Use s.length - 1 when reversing the entire string
 ❌ What was wrong
-reverse(s, 0, s.length)Show more lines
+reverse(s, 0, s.length)
 
 Same out‑of‑bounds issue
 Final reversal was unreliable
 
 ✅ Why the fix is correct
-reverse(s, 0, s.length - 1)Show more lines
+reverse(s, 0, s.length - 1)
 
 Ensures every swap is between valid indices
 Correctly reverses the full string

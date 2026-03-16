@@ -36,8 +36,11 @@ function initDashboard() {
   currentView = window.location.hash.substring(1);|
   renderView();
 }
-// first in this function we are registering an listener so upon any action this listener works and hash from the url will be extracted from 1st index and based upon the return value we are check it its profile or posts it decides the currentview and then we are rendering it. 
-then as defualt we are setting the current view as profile and window.location.has as profile and checks its existence if it doesn't again we are setting the windo.location.has as porifile and curretview repaeting same extraction from 1st index and renderview function call. 
+// first in this function we are registering an listener so upon any action this listener works and
+ hash from the url will be extracted from 1st index and based upon the return value we are check it its profile or posts
+it decides the currentview and then we are rendering it. 
+then as defualt we are setting the current view as profile and window.location.has as profile and 
+checks its existence if it doesn't again we are setting the windo.location.has as porifile and curretview repaeting same extraction from 1st index and renderview function call. 
 
 
 function fetchUser Profile() {
@@ -54,7 +57,9 @@ function fetchUser Profile() {
 .catch(function(err) {
   logMessage('error', "Failed to fetch user profile: " + err);
 });
-// fetch user profile function calls the backend api the first .then returns promise with the response from api and the response being parsed from json to js object and the response data is being assigned to user profile and renderprofile fucntion is called. if any error or issues happens it fls the error message with the help of logMessage function.
+// fetch user profile function calls the backend api the first .then returns promise with the response from api and
+ the response being parsed from json to js object and the response data is being assigned to user profile and renderprofile fucntion is called.
+  if any error or issues happens it fails the error message with the help of logMessage function.
 
 
 function fetchUser Posts() {
@@ -92,8 +97,10 @@ function renderView() {
   }
 }
 
-// function rendr view checks the current ciew if its profile it checks the userProfile data existence if it exists we are rendering the profile page or else we are first fetching the data with fetcuserProfile function then as usual rendering the profile page. 
-other part if the current vie wposts it checks for the usrpost array length if tis empty it calles the fetch user posts function and then render the post page. if it exist already then as usual render it.
+// function rendr view checks the current ciew if its profile it checks the userProfile data existence if it exists we are rendering the profile page
+ or else we are first fetching the data with fetchuserProfile function then as usual rendering the profile page. 
+other part if the current view posts it checks for the userpost array length if tis empty it calles the fetch user posts function and then render the post page.
+ if it exist already then as usual render it.
 
 
 
@@ -183,7 +190,8 @@ function updateProfile() {
   }
 }
 
-// function update profile checks the input which is actuallly an updated input form user and validating it again with validateProfileInput functinon if the error array in the validate profileInput has an value then it alerts with error messge and returns it.
+// function update profile checks the input which is actuallly an updated input form user and 
+validating it again with validateProfileInput functinon if the error array in the validate profileInput has an value then it alerts with error messge and returns it.
 
 fetch("https://api.example.com/user/profile/update", {
 })
@@ -204,7 +212,10 @@ alert("Profile updated successfully!");
   alert("Failed to update profile: + err);
 });
 
-// here we are calling the backend api with post as method and headers with content type and body with name and email from user input the first then resolves with the response from api and it parses the json to js object. and the second then assign the data received from first promise and render the profile page as default with successful alert message it any issues happens we are alerting with another error message.
+// here we are calling the backend api with post as method and headers with content type and body with name and email
+ from user input the first then resolves with the response from api and it parses the json to js object
+ and the second then assign the data received from first promise and render the profile page as default with successful alert message it any issues happens
+  we are alerting with another error message.
 
 function testValidate Profile() {
 }
@@ -220,7 +231,7 @@ initDashboard();
 testValidateProfile();
 };
 
-// this is the initial point wher when the page loads fully  it will call the init dashboard function and run the testvalidate profile test cases. 
+// this is the initial point  when the page loads fully  it will call the init dashboard function and run the testvalidate profile test cases. 
 
 1) explained the code with comments above. 
 var userProfile holds the data  same as applies to user posts 
@@ -241,7 +252,9 @@ Save triggers updateProfile() → validate → POST update → rerender profile.
 
 2) Concerns on Global state managment.
 Globals such as user profile , user posts and current view is mutable from anywhere so its is hard to track who changed what and when 
-It is inconsistent UI . not an single state transition matlab if user in profile page then he swithces to post at this time both render profile and render post is being called here in the given snippet.
+It is inconsistent UI .
+ not an single state transition => if user is in profile page then he swithces to post at this time both render profile 
+ and render post is being called here in the given snippet.
 
 How to improve (minimal + scalable)
 Use a single state object.
@@ -268,7 +281,7 @@ currently we can't assume because fetch is async and responses can return out of
 
 issues : even if the usr profile doesn't have any data it renders with the current code which result in stale response or crash, then switching between the profile and posts in this case flips the UI unexpectedy.
 
-Fix : user a resquest version / token per resource and ignore stale response.
+Fix : use a request ID version / token per resource and ignore stale response.
 let profileReq = 0;
 async function fetchUserProfile() {
   const reqId = ++profileReq;
