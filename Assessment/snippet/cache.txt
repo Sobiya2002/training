@@ -13,6 +13,9 @@ The key nuance in wording
 It’s not that the handler returns a “resolved promise immediately”.
 It returns a pending Promise which will resolve about 1 second later (because of the setTimeout).
 
+When the code runs, the IIFE executes first, setting up variables and functions and attaching them to window.app. 
+No async logic runs until main() is explicitly called.”
+
 (function () {
 
    let cache = {};
@@ -340,7 +343,27 @@ wasted event-loop cycles
 
 ✅ Fix
 Check cache before scheduling async work:
-if (cache[endpoint]) {  return Promise.resolve(cache[endpoint]);}
+function fetchData(endpoint) {
+    if (cache[endpoint]) {
+        // Return cached data immediately, no timer
+        return Promise.resolve(cache[endpoint]);
+    }
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if (!endpoint) {
+                reject(new Error("No endpoint provided"));
+                return;
+            }
+            if (endpoint === "error") {
+                reject(new Error("Simulated network error!"));
+            } else {
+                const data = `Sample data from: ${endpoint}`;
+                cache[endpoint] = data;
+                resolve(data);
+            }
+        }, 1000);
+    });
+}
 ✅ What This Fix Resolves
 
 Cached calls return immediately

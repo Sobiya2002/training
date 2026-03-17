@@ -106,10 +106,7 @@ class StockCollection {
     for (let i = 0; i < sortedRecords.length-1; i++){
       const current = sortedRecords[i];
       const next = sortedRecords[i + 1];
-      console.log('**', current);
-      console.log('&&', next);
       const change = next.price - current.price;
-      console.log(change);
       
       if (biggestChange === null || Math.abs(change)>Math.abs(biggestChange)){
         biggestChange = change;

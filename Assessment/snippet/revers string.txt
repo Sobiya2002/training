@@ -18,6 +18,11 @@ function reverse(str, start, end) {
     }
     return str.join("").substring(start, end);
 }
+
+“The reverse function reverses characters in a string between two given indices using a two‑pointer approach.
+It converts the string into an array because strings are immutable in JavaScript.
+Then it swaps characters from the start and end positions, moving inward until the pointers meet.
+Finally, it joins the array back into a string and returns the reversed portion.”
  
 // Function to reverse words
 function reverseWords(s) {

@@ -1,5 +1,7 @@
 // Assume 'connection' and 'http' are valid imports
 
+// Assume 'connection' and 'http' are valid imports
+
 const get = async (u) => {
 
   const uniqueUserIds = get2(u);
@@ -67,11 +69,17 @@ http.createServer(async (request, response) => {
     const { userIds, role } = request.body;
 
     if (role === 'ADMIN') {
+
       const maxTransactionAmountForUsers = await get(userIds);
+
       response.writeHead(200);
+
       response.write(JSON.stringify(maxTransactionAmountForUsers));
+
     } else {
+
       response.writeHead(403);
+
     }
 
   } else {
@@ -87,14 +95,98 @@ http.createServer(async (request, response) => {
 
 Take just a few minutes to walk through this code, and state what you think it’s doing, being as detailed as possible. If you notice any problems, please feel free to make a note of those for later, but you don’t need to call attention to them now.
 
+⸻
+
+Question 2:
+
+When testing our implementation, we’ve noticed that it produces the incorrect result for the input [‘a’, ‘b’, ‘b’, ‘c’, ‘c’]. Please identify the cause of this issue and propose how to fix it.
+ 
+ Fixed snippet:
+const get = async (u) => {
+  const uniqueUserIds = get2(u);
+
+  // Use parameterized query and IN clause for performance and security
+  const placeholders = uniqueUserIds.map(() => '?').join(',');
+  const transactions = await connection.query(
+    `SELECT userId, amount FROM transactions WHERE userId IN (${placeholders})`,
+    uniqueUserIds
+  );
+
+  // Group transactions by userId
+  const userIdToAmounts = {};
+  transactions.forEach(transaction => {
+    if (!userIdToAmounts[transaction.userId]) {
+      userIdToAmounts[transaction.userId] = [];
+    }
+    userIdToAmounts[transaction.userId].push(transaction.amount);
+  });
+
+  // Calculate max for each userId
+  const result = uniqueUserIds.map(userId => {
+    const amounts = userIdToAmounts[userId] || [];
+    const max = amounts.length > 0 ? Math.max(...amounts) : null;
+    return { userId, max };
+  });
+
+  return result;
+};
+
+const get2 = (a) => {
+  // Use Set for uniqueness and include all elements
+  return Array.from(new Set(a));
+};
+
+http.createServer((request, response) => {
+  if (request.url === '/getMaxTransactionAmountForUsers' && request.method === 'POST') {
+    let body = '';
+    request.on('data', chunk => {
+      body += chunk;
+    });
+    request.on('end', async () => {
+      try {
+        const parsedBody = JSON.parse(body);
+        const { userIds, role } = parsedBody;
+
+        // Input validation
+        if (!Array.isArray(userIds) || typeof role !== 'string') {
+          response.writeHead(400, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify({ message: 'Invalid input' }));
+          return;
+        }
+
+        // Authorization check (should use real authentication in production)
+        if (role === 'ADMIN') {
+          const maxTransactionAmountForUsers = await get(userIds);
+          response.writeHead(200, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify(maxTransactionAmountForUsers));
+        } else {
+          response.writeHead(403, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify({ message: 'Forbidden: insufficient privileges' }));
+        }
+      } catch (err) {
+        response.writeHead(400, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ message: 'Invalid JSON' }));
+      }
+    });
+  } else {
+    response.writeHead(404, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ message: 'Not found' }));
+  }
+});
+ Question 1:
+
+Take just a few minutes to walk through this code, and state what you think it’s doing, being as detailed as possible. If you notice any problems, please feel free to make a note of those for later, but you don’t need to call attention to them now.
+
 Issue1 : Request body parsing 
-In plain node.js , (http.creatServer) request is an incoming message stream, , it does not comes with a pre parsed body which leads to undefined requed.body,  in end it crashes the handler.
-so we need to read the stream and parse the json to prevent the crash.
+In plain node.js, (http.createServer) request is an incoming message stream and does not come with a pre-parsed body, which leads to undefined request.body and can crash the handler. 
+To prevent this, the code defensively reads the stream and parses the JSON, handling errors gracefully to avoid crashes and ensure robust input validation.
 
 
 Issue 2: Authorization bug:
 there is no authentication on server side. Its an access control vulnerability. Any caller can fetch max transactions amounts. 
 Use real authentication (JWT/sessions/mTLS) and get roles from the verified token. about basic JWT and verification knowledge
+
+Issue 2.1: after the http creation we should have input validation for the userID's with type check.
 
 Issue 3: SQL injection bug:
 since we give our user input directly into SQL, a malicious user can inject SQL to get data. As a solution we need to use parameterized query.
@@ -113,11 +205,12 @@ Issue 6: max = -1
 if a user has not transaction but if we return -1 , transaction could be negative 
 Fix: return null or no transactions 
 
+// This snippet addresses two issues related to API responses:
+// 1. Ensures that the Content-Type header is set to 'application/json' so that clients can correctly parse the response.
+// 2. Improves error responses for HTTP 403 and 404 by including a message in the response body, enhancing readability and providing clearer explanations for the errors.
 Issue 7: Missing content type and error response
 some client relies on Content-Type: application/json to parse. 
 Also 403/404 response contain only no body explanation add message to have better readability.
-
-Issue 8: Input Validation  validate the input after the http server creation.
 
 
 Question 2:

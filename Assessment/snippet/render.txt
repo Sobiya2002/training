@@ -292,7 +292,7 @@ async function fetchUserProfile() {
   if (currentView === 'profile') renderProfile();
 }
 
-also while request is in progress render 'loading' / only render when data present.
+also while request is in progress render 'loading' / only render when data present. 
 
 2b) “How can we assume DOM has latest data?”
 Right now, you cannot assume that:
