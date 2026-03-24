@@ -300,8 +300,8 @@ class LogFile {
       continue;
     }
 
-    const cur = active.get(plate);
-    if (!cur) {
+    const trip = active.get(plate);
+    if (!trip) {
       continue;
     }
 
