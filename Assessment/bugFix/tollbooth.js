@@ -256,18 +256,18 @@ class LogFile {
   }
 
   // LEFT AS-IS (your current logic)
-  countJourneys() {
-    let completeJour = 0;
-    for (let l of this.logEntries) {
-      let ongoingJour = new Set(); // left as-is (may be buggy)
-      if (l.booth_type === "ENTRY") {
-        ongoingJour.add(l.license_plate);
-      } else if (l.booth_type === "EXIT") {
-        completeJour++;
-        ongoingJour.delete(l.license_plate);
+  countJourneys(){
+    let completeJor = 0;
+    let ongoingJounr = new Set();
+    for(let l of this.logEntries){
+      if(l.booth_type === 'ENTRY'){
+        ongoingJounr.add(l.license_plate);
+      }else if(l.booth_type === 'EXIT'&& ongoingJounr.has(l.license_plate)){
+        completeJor++;
+        ongoingJounr.delete(l.license_plate);
       }
     }
-    return completeJour;
+    return completeJor;
   }
   
 
