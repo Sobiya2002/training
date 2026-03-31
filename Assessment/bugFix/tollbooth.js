@@ -308,7 +308,7 @@ class LogFile {
     trip.push(log);
 
     if (log.booth_type === 'EXIT') {
-      journey.push({ plate, logs: cur });
+      journey.push({ plate, logs: trip });
       active.delete(plate);
     }
   }
