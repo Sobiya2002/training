@@ -148,16 +148,6 @@ cache is acceptable, but clearer as responseCache or cacheByEndpoint so a reader
 fetchData(endpoint) is misleading because it doesn’t really fetch a network call; it simulates + caches. Better names you suggested: fetchWithCache or getDataWithCache.
 In processData, the nested compute() function is unnecessary extra nesting and should be inlined for readability. ✅ (This was the missing point you flagged.)
 
-B) Fix exposed API naming + typo
-
-window.app = { …, _calche: cache } looks like a typo; should be _cache.
-Why it matters: typos reduce trust and consumers won’t find the expected property.
-
-C) Consistent formatting & spacing
-
-You pointed out console. log and window. app (spaces around the dot). This hurts readability and can be syntactically problematic.
-Maintainability-wise: consistent formatting is non-negotiable.
-
 D) Avoid “magic strings”
 
 "api/data" and "error" are hard-coded in multiple places → define constants like:
