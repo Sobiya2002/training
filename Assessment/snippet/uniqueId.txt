@@ -208,6 +208,7 @@ Fix: return null or no transactions
 // This snippet addresses two issues related to API responses:
 // 1. Ensures that the Content-Type header is set to 'application/json' so that clients can correctly parse the response.
 // 2. Improves error responses for HTTP 403 and 404 by including a message in the response body, enhancing readability and providing clearer explanations for the errors.
+
 Issue 7: Missing content type and error response
 some client relies on Content-Type: application/json to parse. 
 Also 403/404 response contain only no body explanation add message to have better readability.
