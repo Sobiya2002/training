@@ -269,6 +269,18 @@ class LogFile {
     }
     return completeJor;
   }
+
+        countJourneys(){
+    let count = 0;
+
+    for(const log of this.logEntries){
+        if(log.booth_type === 'EXIT'){
+            count++
+        }
+    }
+
+    return count;
+  }
   
 
   // NOT IMPLEMENTED (as requested)
