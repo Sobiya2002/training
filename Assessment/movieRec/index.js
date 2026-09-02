@@ -78,3 +78,8 @@ console.log('Bob =>', recommendations("Bob", ratings));         // ["Inception",
 // console.log('Dennis =>', recommendations("Dennis", ratings));   // ["Lost In Translation"]
 // console.log('Alice =>', recommendations("Alice", ratings));     // []
 // console.log('Franz =>', recommendations("Franz", ratings));     // ["Inception", "All About Eve", "Topsy-Turvy"]
+
+raters.forEach((u) => {
+      if (u !== target && !seenSimilar.has(u)) {
+        seenSimilar.add(u);
+        similarUsers.push(u); 
