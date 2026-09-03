@@ -110,4 +110,35 @@ const list3 = ['Blueberries', 'Carrots', 'Romaine Lettuce', 'Iceberg Lettuce'];
 const list4 = ['Milk', 'Flour', 'Chocolate Milk', 'Pasta Sauce'];
 
 const list5 = ['Cheese', 'Potatoes', 'Blueberries', 'Canned Tuna'];"
+
+function shopping(products, list) {
+    const itemToDept = new Map();
+    for(let [item, department] of products) {
+        itemToDept.set(item,department);
+    }//map
+    
+    // const departmentSeq = [];
+    // for(let item of list) {
+    //     departmentSeq.push(itemToDept.get(item));
+    // }
+    const departmentSeq = list.map(item => itemToDept.get(item));
+    let prev = undefined; //let prev;
+    let orderedVisits = 0;
+    for(let d of departmentSeq) {
+        if(d!=prev) {
+            orderedVisits++;
+            prev = d;
+        }
+    }
+    const departmentSeq_set = new Set(departmentSeq);
+    const minimalVisits = orderedVisits-departmentSeq_set.size;
+    return minimalVisits;
+}
+    
+
+console.log(shopping(products,list1))
+console.log(shopping(products,list2))
+console.log(shopping(products,list3))
+console.log(shopping(products,list4))
+console.log(shopping(products,list5))
  
