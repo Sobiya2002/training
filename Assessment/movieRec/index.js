@@ -47,55 +47,80 @@ U = number of users
 */
 
 ratings = [
-  ["Alice", "Frozen", "5"],
-  ["Bob", "Mad Max", "5"],
-  ["Charlie", "Lost In Translation", "4"],
-  ["Charlie", "Inception", "4"],
-  ["Bob", "All About Eve", "3"],
-  ["Bob", "Lost In Translation", "5"],
-  ["Dennis", "All About Eve", "5"],
-  ["Dennis", "Mad Max", "4"],
-  ["Charlie", "Topsy-Turvy", "2"],
-  ["Dennis", "Topsy-Turvy", "4"],
-  ["Alice", "Lost In Translation", "1"],
-  ["Franz", "Lost In Translation", "5"],
-  ["Franz", "Mad Max", "5"]
-]
-function recommendations(user, ratings) {
-  const userLiked = new Map();     // user -> Set of liked movies
-  const movieLikedBy = new Map(); // movie -> Set of users who liked it
-  const userRated = new Map();    // user -> Set of all rated movies
+    ["Alice", "Frozen", "5"],
+    ["Bob", "Mad Max", "5"],
+    ["Charlie", "Lost In Translation", "4"],
+    ["Charlie", "Inception", "4"],
+    ["Bob", "All About Eve", "3"],
+    ["Bob", "Lost In Translation", "5"],
+    ["Dennis", "All About Eve", "5"],
+    ["Dennis", "Mad Max", "4"],
+    ["Charlie", "Topsy-Turvy", "2"],
+    ["Dennis", "Topsy-Turvy", "4"],
+    ["Alice", "Lost In Translation", "1"],
+    ["Franz", "Lost In Translation", "5"],
+    ["Franz", "Mad Max", "5"]
+];
 
-  for (let [u, movie, rating] of ratings) {
-    rating = Number(rating);
- 
-    if (!userRated.has(u)) userRated.set(u, new Set());
-    userRated.get(u).add(movie);
-    if (rating >= 4) {
-      if (!userLiked.has(u)) userLiked.set(u, new Set());
-      userLiked.get(u).add(movie);
-      if (!movieLikedBy.has(movie)) movieLikedBy.set(movie, new Set());
-      movieLikedBy.get(movie).add(u);
+const recommendation = (user, ratings) => {
+    const userRated = new Map();
+    const userLiked = new Map();
+    const movieLiked = new Map();
+
+    for (let [u, movie, rating] of ratings) {
+        rating = Number(rating);
+
+        if (!userRated.has(u)) {
+            userRated.set(u, new Set());
+        }
+        userRated.get(u).add(movie);
+
+        if (rating >= 4) {
+            if (!userLiked.has(u)) {
+                userLiked.set(u, new Set());
+            }
+            userLiked.get(u).add(movie);
+
+            if (!movieLiked.has(movie)) {
+                movieLiked.set(movie, new Set());
+            }
+            movieLiked.get(movie).add(u);
+        }
     }
-  }
-  if (!userLiked.has(user)) return [];
-  const similarUsers = new Set();
-  // Find similar users through common liked movies
-  for (const movie of userLiked.get(user)) {
-    for (const otherUser of movieLikedBy.get(movie)) {
-      if (otherUser !== user) {
-        similarUsers.add(otherUser);
-      }
+    // console.log(userRated);
+    // console.log(userLiked);
+    // console.log(movieLiked);
+
+    if(!userLiked.get(user)){
+        return [];
     }
-  }
-  const result = new Set();
-  for (const simUser of similarUsers) {
-    for (const movie of userLiked.get(simUser) || []) {
-      if (!userRated.get(user).has(movie)) {
-        result.add(movie);
-      }
+
+    const similarUser = new Set();
+
+    for(const movie of userLiked.get(user)){
+        for(const otherUser of movieLiked.get(movie)){
+            if(otherUser !== user){
+                similarUser.add(otherUser);
+            }
+        }
     }
-  }
-  return [...result];
+    // console.log(similarUser);
+
+    const result = new Set();
+
+    for(const simUsr of similarUser){
+        for(const movie of userLiked.get(simUsr)){
+            if(!userRated.get(user).has(movie)){
+                result.add(movie);
+            }
+        }
+    }
+
+    return [...result];
 }
-console.log(recommendations("Charlie", ratings) )
+
+console.log(recommendation('Charlie', ratings));
+console.log(recommendation('Bob', ratings));
+console.log(recommendation('Dennis', ratings));
+console.log(recommendation('Alice', ratings));
+console.log(recommendation('Franz', ratings));
