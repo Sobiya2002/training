@@ -27,6 +27,11 @@ Amos: 500 503 504
 n: length of the badge records array
 */
 
+First, group all badge times by employee using a Map. 
+Then sort each employee's badge times chronologically.
+For every badge time, treat it as the start of a 1-hour window
+and collect all subsequent badge times that occur within 60 minutes of that start time.
+If any window contains 3 or more badge entries, store that employee and the corresponding window in the result.
 
 
 
