@@ -71,6 +71,13 @@ n: number of products
 
 */
 
+  Use a Map to quickly find the department for each item.
+Transform the shopping list into a sequence of departments.
+Count department transitions (actual visits).
+Use a Set to find the number of unique departments.
+The difference between actual visits and unique departments gives the number of department revisits required by the shopping order.
+Overall complexity is O(P + L) with efficient Map and Set lookups.
+
 const products = [
 
   ['Cheese',          'Dairy'],
