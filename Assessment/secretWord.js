@@ -8,41 +8,46 @@
 words = ["Cat", "tac", "act"];
 secret = "cat";
 
-const findSecretWord =(words, secret) => {
-    const secretFreq = {};
+const findSecretWord = (words, secret) => {
+    const secretFreq = new Map();
 
-    for(const char of secret){
-        secretFreq[char] = (secretFreq[char] || 0) + 1;
+    // Build secret frequency map
+    for (const char of secret) {
+        secretFreq.set(char, (secretFreq.get(char) || 0) + 1);
     }
 
+    const hasAllLetters = (word) => {
+        const wordFreq = new Map();
 
-    const hasAll = (word) => {
-        const wordFreq = {};
-        for(const char of word){
-            wordFreq[char] = (wordFreq[char]||0) + 1;
+        // Build word frequency map
+        for (const char of word) {
+            wordFreq.set(char, (wordFreq.get(char) || 0) + 1);
         }
 
-        for(const char in secretFreq){
-            if((wordFreq[char] || 0) < secretFreq[char]){
+        // Verify required frequencies
+        for (const [char, count] of secretFreq) {
+            if ((wordFreq.get(char) || 0) < count) {
                 return false;
             }
         }
-        return true
-    }
 
-    for(const word of words){
-        if(word === secret){
+        return true;
+    };
+
+    // Priority 1: Exact match
+    for (const word of words) {
+        if (word === secret) {
             return word;
         }
     }
 
-     for(const word of words){
-        if(hasAll(word)){
+    // Priority 2: Frequency match
+    for (const word of words) {
+        if (hasAllLetters(word)) {
             return word;
         }
     }
 
-    return 'no match';
-}
-
+    return "No Match";
+};
 console.log(findSecretWord(words, secret));
