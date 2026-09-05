@@ -30,6 +30,10 @@ get_robot_for_required_part_2=[rosie,optimus]
 
 get_robot_for_required_part_3=[Ruby]
 
+I first group all parts by robot using a Map<String, Set>.
+The Map stores each robot and its unique parts, while the Set gives fast lookups. 
+After building the map, I iterate through every robot and use every() to verify that all required parts exist in that robot's Set.
+If all checks pass, I add the robot name to the result
 
 
 
