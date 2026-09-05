@@ -46,6 +46,16 @@ M = number of movies
 U = number of users
 */
 
+First i'll iterate the rating to create suporitng data structure userRated, userLiked and movieLiked
+if the targerted user did not liked any movies return emtpy list
+then i will find the similar user , look at evry movie targed user liked
+  and with that movie i will get the similar user name and add it to set .
+    similarity is established by sharing the movie that rated 4 or 5
+
+once this is done, with the similar user list
+  i will take the movies that they liked and have a condition to check whether the target user liked movie present in the set if its not then 
+    i'll add the movie to result set.
+
 ratings = [
     ["Alice", "Frozen", "5"],
     ["Bob", "Mad Max", "5"],
