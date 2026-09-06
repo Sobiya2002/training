@@ -146,7 +146,7 @@ const mismatch = (records) => {
     }
 
     for(const name of inside){
-        exitedWihtoutEntry.add(name)
+        enteredWithoutEntry.add(name)
     }
 
     return [
