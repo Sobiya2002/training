@@ -141,6 +141,24 @@ checks whether the endpoint exists,
 checks whether a cached response is already available,
 and if not, generates mock data locally, stores it in cache, and resolves the promise.
 
+The entire code is wrapped inside an Immediately Invoked Function Expression
+Inside the IIFE, several functions are defined and exposed through window.app.
+
+When app.main() is executed, two asynchronous operations are initiated concurrently: fetchData("api/data") and fetchData("error").
+
+The fetchData() function returns a Promise and uses setTimeout() to simulate a network request with a one-second delay.
+For the "api/data" request, it first checks whether data already exists in the cache. Since this is the first request, the cache is empty, so a simulated response is created,
+stored in the cache object, and the Promise is resolved with that data.
+
+The first .then() handler receives the data, logs it, and passes it to processData(). Inside processData(), the helper function compute() reverses the string 
+and returns the processed result. The processing time and reversed string are then logged.
+
+After that, fetchData("api/data") is called again. This time the cache already contains the response, so the cached value is returned instead of creating a new response. The next .then() logs the cached data.
+
+In parallel, the second request calls fetchData("error"). After the simulated delay, the code intentionally rejects the Promise because the endpoint equals "error". Control moves to the .catch() block, which logs the error.
+
+Finally, every fetchData() call includes a .finally() block that executes regardless of whether the Promise is resolved or rejected, making it useful for cleanup or completion logging.
+
 1) Variable naming & structure — ALL your points, nothing skipped
 A) Names should reflect intent (avoid generic)
 
