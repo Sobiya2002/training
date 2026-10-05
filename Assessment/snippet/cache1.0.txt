@@ -43,3 +43,32 @@ Consider separating validation, caching, and retrieval logic into smaller focuse
 
 What performance issue will arise in the current implemtnation
 The main asynchronous performance issues are inefficient cache utilization, duplicate concurrent requests, and potential event-loop blocking from synchronous processing. These can be addressed by returning cached responses immediately, sharing in-flight Promises across concurrent requests, and offloading CPU-intensive work from the main event loop. Additionally, introducing cache expiration helps prevent memory growth in long-running systems.
+
+
+- How can performance be monitored effectively?
+
+To monitor performance effectively, I would track request latency, cache hit/miss rates, the number of in-flight requests, processing time inside processData, event-loop lag, and memory usage. Together these metrics help identify slow requests, ineffective caching, excessive concurrency, CPU bottlenecks, event-loop blocking, and memory growth under heavy load.
+
+
+- What improvements can be made to the asynchronous design to further optiatia perforee under heavy load?
+Asynchronous Performance Optimizations
+1. Return Cached Data Immediately Instead of After Delay
+Where: Cache lookup happens inside setTimeout, so cached requests still wait 1 second.
+
+Fix: Check the cache before scheduling asynchronous work and return a resolved Promise immediately.
+
+Benefit: Reduces latency for cache hits and decreases unnecessary timer creation under heavy load.
+
+2. De-duplicate Concurrent Requests Using In-Flight Promises
+Where: Multiple parallel requests to the same endpoint create separate setTimeout calls and duplicate work before the cache is populated.
+
+Fix: Maintain an inFlightRequests map keyed by endpoint. If a request is already in progress, return the existing Promise instead of creating a new one. Remove the Promise from the map in finally() once the request completes.
+
+Benefit: Prevents duplicate asynchronous operations, reduces resource usage, and improves scalability under concurrent load.
+
+3. Avoid Blocking the Event Loop with Synchronous Processing
+Where: processData() performs CPU-intensive work synchronously, which can delay timers, Promise callbacks, and other requests as data size grows.
+
+Fix: Break large workloads into smaller chunks and periodically yield to the event loop, or offload heavy processing to a Worker Thread/Web Worker.
+
+Benefit: Keeps the application responsive and prevents long-running CPU tasks from blocking asynchronous operations.
