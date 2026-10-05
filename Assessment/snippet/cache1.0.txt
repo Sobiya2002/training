@@ -33,6 +33,7 @@ Provide contextual error messages including endpoint details.
    replacing generic messages such as "No endpoint provided" or "Simulated network error" with messages like
      "Invalid endpoint provided. Expected a non-empty string" and "Failed to fetch data from endpoint '/api/data'" would make debugging much easier in larger applications.
 Use async/await with centralized try/catch blocks for clearer error flow.
+log success and error separately in finally block.
   
 => Code Comprehensibility & Maintainability
 Replace Promise chains with async/await.
