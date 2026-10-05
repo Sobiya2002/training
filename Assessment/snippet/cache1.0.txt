@@ -1,0 +1,41 @@
+CODE FLOW: 
+The entire code is wrapped inside an Immediately Invoked Function Expression
+Inside the IIFE, several functions are defined and exposed through window.app.
+
+When app.main() is executed, two asynchronous operations are initiated concurrently: fetchData("api/data") and fetchData("error").
+
+The fetchData() function returns a Promise and uses setTimeout() to simulate a network request with a one-second delay.
+For the "api/data" request, it first checks whether data already exists in the cache. Since this is the first request, the cache is empty, so a simulated response is created,
+stored in the cache object, and the Promise is resolved with that data.
+
+The first .then() handler receives the data, logs it, and passes it to processData(). Inside processData(), the helper function compute() reverses the string 
+and returns the processed result. The processing time and reversed string are then logged.
+
+After that, fetchData("api/data") is called again. This time the cache already contains the response, so the cached value is returned instead of creating a new response. The next .then() logs the cached data.
+
+In parallel, the second request calls fetchData("error"). After the simulated delay, the code intentionally rejects the Promise because the endpoint equals "error". Control moves to the .catch() block, which logs the error.
+
+Finally, every fetchData() call includes a .finally() block that executes regardless of whether the Promise is resolved or rejected, making it useful for cleanup or completion logging.
+
+
+Examine the code and identify the area where we can code legitibilty and maintainability can be improved. your answer should focus on:
+=> Variable Naming & Structure
+Do not expose internal cache through window.app.
+Use const for cache.
+Rename variables and functions to be more descriptive (responseCache for cache, getDataWithCache for fetch Data).
+Inline the unnecessary compute() helper.
+Expose only the minimum required public API.
+
+=> Error Handling
+Validate inputs before scheduling asynchronous work.
+Handle null, undefined, empty strings, and invalid endpoint types.
+Provide contextual error messages including endpoint details.
+   replacing generic messages such as "No endpoint provided" or "Simulated network error" with messages like
+     "Invalid endpoint provided. Expected a non-empty string" and "Failed to fetch data from endpoint '/api/data'" would make debugging much easier in larger applications.
+Use async/await with centralized try/catch blocks for clearer error flow.
+  
+=> Code Comprehensibility & Maintainability
+Replace Promise chains with async/await.
+Remove unnecessary nesting and helper functions.
+Extract magic values into named constants.
+Consider separating validation, caching, and retrieval logic into smaller focused functions.
