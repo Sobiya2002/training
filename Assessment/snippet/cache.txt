@@ -719,118 +719,35 @@ Easier to refactor later
 
 Discuss:
 
-- What performance issues might arise from the current implementation?
 
-Unnecessary latency even for cached data
-Where: Cache check is inside setTimeout in fetchData, so cached responses still wait 1 second.
-Fix: Move the cache check before setTimeout and return cached data immediately to get real performance benefit from caching.
 
-Process Data issue: processData runs synchronously on the main thread; under heavy data or high frequency it can block the event loop and delay all async work,
- so heavy processing should be offloaded or broken into smaller chunks / use worker threads.
-
- Why this is a problem under load
-Right now, your data is small, so it feels harmless.
-But imagine:
-
-data is very large (big string / JSON)
-processData is called many times
-multiple fetches resolve around the same time
-
-What happens then?
-Event loop timeline:
-
-| processData running | processData running | processData running |
-(no timers, no promises, no UI updates can run here)
-
-While processData is running:
-
-setTimeout callbacks cannot run
-Promise .then() callbacks are delayed
-UI may freeze (in browser)
-
-✅ That is what “blocking the event loop” means
-
-Fetch Data Issue: Multiple concurrent calls to the same endpoint all schedule separate timers and duplicate work; 
-tracking in‑flight requests and reusing the same Promise avoids redundant processing and scales better under load.
-
-Where the issue is in your code
-Every call to fetchData("api/data") does this:
-setTimeout(() => {  // work}, 1000);
-There is no check for:
-
-“Is this request already in progress?”
-You keep a structure like:
-inFlightRequests = {  "api/data": Promise( pending )}
-When:
-
-request starts → store the Promise
-request finishes → remove it
-new request comes while pending → return the same Promise
-
-What happens with ONE call (fine)
-fetchData("api/data")
-→ setTimeout scheduled
-→ resolves
-→ cache populated
-
-✅ Works fine.
-
-What happens with MANY calls at the same time (problem)
-Imagine this happens quickly:
-fetchData("api/data");fetchData("api/data");fetchData("api/data");
-Timeline
-Time 0:
-- 3 calls made
-- 3 setTimeouts scheduled
-
-Time +1s:
-- All 3 timers fire
-- All 3 do the same work
-- Cache helps only AFTER the first finishes
-
-So you get:
-
-duplicated work
-unnecessary timers
-wasted CPU
-
-✅ This is poor scalability
 
 
 - How can performance be monitored effectively?
-1. Measure execution time (already partially done) - add log timing in fetchData function when the function starts and end of the flow and if error throws inbetween
-You already log timing in processData:
-const startTime = Date.now();console.log("Processed data in", Date.now() - startTime, "ms");
-Improvement
 
-Use consistent metrics for both fetch and processing
-Include endpoint context in logs 
-
-2.Track cache efficiency and request volume
-Where: fetchData maintains an in‑memory cache but does not log cache hits or misses.
-How it helps: Adding simple counters for total calls, cache hits, and cache misses reveals whether caching is effective or if most requests still incur delay.
-
-3.Observe event‑loop and async delays -- log the time in both the functions.
-Where: Heavy synchronous work in processData and many setTimeout callbacks can delay promise resolution.
-How it helps: Monitoring delayed callbacks (via logs or runtime tools) highlights event‑loop blocking and scalability issues under load.
-Fix: Event‑loop delays can be monitored by measuring how late timers and promise callbacks execute compared to their expected time,
- which directly reveals blocking synchronous work and scalability bottlenecks.
+To monitor performance effectively, I would track request latency, cache hit/miss rates, the number of in-flight requests, processing time inside processData, event-loop lag, and memory usage. Together these metrics help identify slow requests, ineffective caching, excessive concurrency, CPU bottlenecks, event-loop blocking, and memory growth under heavy load.
 
 
 - What improvements can be made to the asynchronous design to further optiatia perforee under heavy load?
-Return cached data immediately instead of after delay
-Where: Cache check happens inside setTimeout, so cached requests still wait 1 second.
-Fix: Check cache before scheduling async work and resolve immediately to reduce latency and timer pressure under load.
+Asynchronous Performance Optimizations
+1. Return Cached Data Immediately Instead of After Delay
+Where: Cache lookup happens inside setTimeout, so cached requests still wait 1 second.
 
+Fix: Check the cache before scheduling asynchronous work and return a resolved Promise immediately.
 
+Benefit: Reduces latency for cache hits and decreases unnecessary timer creation under heavy load.
 
-De‑duplicate concurrent requests using in‑flight Promises
-Where: Multiple parallel calls to the same endpoint all create separate setTimeouts and do duplicate work.
-Fix: Track in‑flight requests per endpoint and return the same Promise to all callers, ensuring only one async operation runs per endpoint.
+2. De-duplicate Concurrent Requests Using In-Flight Promises
+Where: Multiple parallel requests to the same endpoint create separate setTimeout calls and duplicate work before the cache is populated.
 
+Fix: Maintain an inFlightRequests map keyed by endpoint. If a request is already in progress, return the existing Promise instead of creating a new one. Remove the Promise from the map in finally() once the request completes.
 
+Benefit: Prevents duplicate asynchronous operations, reduces resource usage, and improves scalability under concurrent load.
 
-Avoid blocking the event loop with synchronous processing
-Where: processData performs CPU‑bound work synchronously, which delays timers and promise callbacks when load increases.
-Fix: Offload heavy processing to a worker/background task or break work into smaller chunks so the event loop remains responsive.
+3. Avoid Blocking the Event Loop with Synchronous Processing
+Where: processData() performs CPU-intensive work synchronously, which can delay timers, Promise callbacks, and other requests as data size grows.
+
+Fix: Break large workloads into smaller chunks and periodically yield to the event loop, or offload heavy processing to a Worker Thread/Web Worker.
+
+Benefit: Keeps the application responsive and prevents long-running CPU tasks from blocking asynchronous operations.
 
