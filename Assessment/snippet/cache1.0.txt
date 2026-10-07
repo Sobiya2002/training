@@ -49,6 +49,7 @@ The main asynchronous performance issues are inefficient cache utilization, dupl
 - How can performance be monitored effectively?
 
 To monitor performance effectively, I would track request latency, cache hit/miss rates, the number of in-flight requests, processing time inside processData, event-loop lag, and memory usage. Together these metrics help identify slow requests, ineffective caching, excessive concurrency, CPU bottlenecks, event-loop blocking, and memory growth under heavy load.
+also instead of Date.now() use performance.now() 
 
 
 - What improvements can be made to the asynchronous design to further optiatia perforee under heavy load?
@@ -73,3 +74,5 @@ Where: processData() performs CPU-intensive work synchronously, which can delay 
 Fix: Break large workloads into smaller chunks and periodically yield to the event loop, or offload heavy processing to a Worker Thread/Web Worker.
 
 Benefit: Keeps the application responsive and prevents long-running CPU tasks from blocking asynchronous operations.
+
+
