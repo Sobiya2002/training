@@ -251,8 +251,9 @@ Show hidden form.
 Save triggers updateProfile() → validate → POST update → rerender profile.
 
 2) Concerns on Global state managment.
-Globals such as user profile , user posts and current view is mutable from anywhere so its is hard to track who changed what and when 
-It is inconsistent UI .
+
+The main issue is that the application uses multiple global variables for state management. Since any function can modify them, state changes are hard to track and can cause UI inconsistencies during asynchronous operations. I would centralize the data into a single state object and update it through a single state-management function. This provides a single source of truth, makes the code easier to maintain and test, and helps prevent stale API responses from updating the UI incorrectly.
+
  not an single state transition => if user is in profile page then he swithces to post at this time both render profile 
  and render post is being called here in the given snippet.
 
@@ -266,14 +267,6 @@ const state = {
   loading: { profile: false, posts: false },
   requestId: { profile: 0, posts: 0 }
 };
-
-Only update state in one place (e.g., setState(partial)), then call render().
-Using a state object helps because it centralizes all mutable data into a single source of truth.
- In this dashboard, that prevents race conditions from async fetch calls, avoids rendering with incomplete data, and makes it easy to guard UI updates based on the current view. 
- It also improves testability because functions no longer depend on global variables.”
-
- “State doesn’t stop async responses;
-  it stops stale responses from rendering by checking whether the current state still matches the user’s intent.”
 
 
 2b) How can we assume DOM is being sent with latest data.
