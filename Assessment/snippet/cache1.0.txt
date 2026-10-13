@@ -76,3 +76,127 @@ Fix: Break large workloads into smaller chunks and periodically yield to the eve
 Benefit: Keeps the application responsive and prevents long-running CPU tasks from blocking asynchronous operations.
 
 
+
+
+Test strategy for processData(data) (sync CPU work)
+1) Correct transformation
+What to test
+
+It reverses a string correctly.
+
+Examples:
+
+"abc" → "cba"
+"Sample data" → "atad elpmaS"
+
+How
+
+expect(processData("abc")).toBe("cba") 
+
+
+2) Edge cases
+What to test
+
+Empty string: "" → ""
+Single char: "a" → "a"
+Unicode / emoji (string reversal can be tricky with surrogate pairs; at least acknowledge and test a simple case)
+
+How
+
+expect(processData("")).toBe("")
+expect(processData("a")).toBe("a") 
+
+
+3) Performance logging doesn’t break output
+Your function logs processing time:
+console.log("Processed data in", ... , "ms");
+What to test
+
+It still returns correct result even when logging occurs.
+
+How
+
+Spy/mocking: jest.spyOn(console, "log")
+Assert it was called with "Processed data in" (optional)
+Assert return value is correct
+
+This keeps tests clean (no noisy console during test run). 
+
+✅ “Integration” test: fetchData + processData together
+What to test
+
+When fetchData("api/data") resolves, processing produces the reversed expected string.
+
+How
+
+const data = await fetchData("api/data")
+const processed = processData(data)
+assert processed === reverse("Sample data from: api/data")
+
+
+Test strategy for fetchData(endpoint) (async + cache)
+1) Input validation / rejection
+What to test
+
+When endpoint is missing/empty, the Promise rejects with "No endpoint provided".
+
+How
+
+Use await expect(fetchData()).rejects.toThrow("No endpoint provided") (Jest style).
+Also test "" (empty string) because !endpoint catches it too. 
+
+
+2) Simulated error path
+What to test
+
+When endpoint is "error", Promise rejects with "Simulated network error!".
+
+How
+
+await expect(fetchData("error")).rejects.toThrow("Simulated network error!") 
+
+
+3) Success path returns expected data
+What to test
+
+For a normal endpoint (e.g., "api/data"), Promise resolves to:
+
+Sample data from: api/data
+How
+
+await expect(fetchData("api/data")).resolves.toBe("Sample data from: api/data") 
+
+
+4) Caching behavior
+What to test
+
+Second call with the same endpoint returns the same value and comes from the cache (logically).
+Because the cache is internal, you validate caching by verifying:
+
+first call resolves to expected value
+second call resolves to the same value (and optionally: cache object contains the key if exposed via safe accessor in improved version)
+How (practical & deterministic)
+Call await fetchData("api/data") twice and assert equal.
+If you refactor to expose a safe getCacheSnapshot(),
+ assert it contains "api/data" key. (In the current snippet, cache is internal; you can still test “same result on second call”.)
+
+
+5.Timing / async determinism with fake timers
+Because setTimeout(..., 1000) makes tests slow and flaky, use fake timers.
+What to test
+
+Promise does not resolve immediately.
+After advancing time by 1000ms, it resolves.
+
+How
+
+In Jest: jest.useFakeTimers()
+Call const p = fetchData("api/data")
+jest.advanceTimersByTime(999) → still pending
+jest.advanceTimersByTime(1) → resolves
+
+This makes async tests fast and reliable
+
+
+
+
