@@ -20,11 +20,14 @@ Finally, every fetchData() call includes a .finally() block that executes regard
 
 Examine the code and identify the area where we can code legitibilty and maintainability can be improved. your answer should focus on:
 => Variable Naming & Structure
-Do not expose internal cache through window.app.
-Use const for cache.
-Rename variables and functions to be more descriptive (responseCache for cache, getDataWithCache for fetch Data).
-Inline the unnecessary compute() helper.
-Expose only the minimum required public API.
+Replace let cache with const responseCache because the cache reference is not reassigned.
+Rename fetchData to getDataWithCache so the function name clearly communicates that it handles both fetching and caching.
+Rename generic variables such as data, result, and err to responseData, processedResult, and error.
+Rename the generic main function to something more descriptive, such as runDataProcessingDemo.
+Inline the nested compute() helper because it is called only once and does not provide reuse or meaningful abstraction.
+Keep the cache private inside the IIFE instead of exposing it through window.app.
+Expose only the minimum required public API, ideally just the application entry function.
+
 
 => Error Handling
 Validate inputs before scheduling asynchronous work.
