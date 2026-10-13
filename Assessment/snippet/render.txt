@@ -160,7 +160,7 @@ function renderPosts() {
 "&lt;/div&gt;";
 
 // the render posts function also get the dashboard container by element id and
- checks its existence it its not here it logs the error message and returns. then the containers's inner html is replaced with User Posts as heading and each post in the list is iterated and add each one's title and content below the heading one after another.
+ checks its existence it its not here it logs the error message and returns. then the contents of containers' inner html are replaced with User Posts as heading and each post in the list is iterated and add each one's title and content below the heading one after another.
 
 function validate ProfileInput (name, email) {
   var errors = [];
