@@ -291,7 +291,11 @@ also while request is in progress render 'loading' / only render when data prese
 2c.
 c. DOM Manipulations and Improvement Suggestions
 
-The code relies heavily on innerHTML and repeated DOM updates, which can cause unnecessary re-renders and duplicate event handlers. It also lacks proper data binding because state changes don't automatically synchronize with the UI, requiring manual render calls. Additionally, large string-based templates are difficult to maintain and can introduce security risks when rendering dynamic data. I would maintain a single source of truth for state, render the UI from that state, update the DOM in a single operation, and use reusable template functions or components to improve performance, maintainability, and UI consistency.
+The code relies heavily on innerHTML and repeated DOM updates, which can cause unnecessary re-renders and duplicate event handlers. 
+It also lacks proper data binding because state changes don't automatically synchronize with the UI, requiring manual render calls. 
+Additionally, large string-based templates are difficult to maintain and can introduce security risks when rendering dynamic data. 
+I would maintain a single source of truth for state, render the UI from that state, update the DOM in a single operation,
+and use reusable template functions or components to improve performance, maintainability, and UI consistency.
 
 
 // 3.Examine the "profileDashboard.js" code exhibit and identify
