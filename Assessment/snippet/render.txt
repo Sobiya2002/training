@@ -238,17 +238,11 @@ var userProfile holds the data  same as applies to user posts
 curentview -> tracks which view should be displayed based on URL hash.
 
 Overall flow:
-Page loads → initDashboard() sets up hash routing and renders initial view.
-Hash is #profile by default:
-renderView() sees profile view.
-If userProfile not loaded → starts fetchUserProfile().
-Once API returns → store userProfile and renderProfile().
-User clicks Posts (changing hash to #posts):
-hashchange triggers → currentView='posts' → renderView().
-If userPosts empty → fetch posts → then render.
-User clicks Edit Profile:
-Show hidden form.
-Save triggers updateProfile() → validate → POST update → rerender profile.
+When the page loads, initDashboard() initializes routing, sets up the hash-change listener, and loads the default Profile view. renderView() acts as the main controller, deciding whether to display the Profile or Posts screen based on the current hash.
+
+If the required data is not already available, the application makes an API call to fetch it. Once the response is received, the data is stored in memory and the corresponding view is rendered. Navigation between Profile and Posts happens through hash changes, which trigger re-rendering of the appropriate view.
+
+The Profile screen also supports editing. When the user clicks Edit Profile, a hidden form becomes visible. On Save, the input is validated, and if validation succeeds, an update request is sent to the backend. After a successful response, the local profile data is updated and the Profile view is re-rendered with the latest information.
 
 2) Concerns on Global state managment.
 
@@ -393,70 +387,6 @@ Test Case: Toggle Edit Form
     Logic: Call renderProfile(), simulate a click on editProfileBtn, and assert that the editProfileForm style is no longer display: none.
 
 4c.
-     "High test infrastructure" (like CI/CD pipelines, Cypress, or Playwright)
-     Race‑condition detection
-
-🔴 Race‑condition detection -- Bug in the snippet
-
-fetchUserProfile() and fetchUserPosts() are asynchronous.
-If the user switches from #posts → #profile quickly, an older API response can arrive late and overwrite the UI.
-This causes “ghost UI updates” (posts showing on profile view).
-
-✅ How high test infrastructure helps
-
-“With automated tests that simulate slow or out‑of‑order network responses, this race condition is detected immediately.”
-
- 🔴 Regression prevention -- Bug in the snippet
-
-renderProfile() adds event listeners every time it runs.
-If profile re-renders, clicking Save may trigger updateProfile() multiple times.
-
-✅ How high test infrastructure helps
-
-“Automated tests running on every commit catch regressions where a single click suddenly triggers multiple updates.”
+     "High test infrastructure" (like CI/CD pipelines, Cypress, or Playwright) validate behavior which unit test alone misses, in this case I can see potentional race condition issue from asynchronous API calls, duplicate event listener from re-rendering, DOM rendering issues from malformed HTML, routing edge cases. Integraton, end to end testing can simulate the real actions and network delay to detect the issues automatically and prevent regression when future code changes.
 
 
-DOM correctness validation
-🔴 Bug in the snippet
-
-Broken HTML strings:
-
-Missing quotes
-Incorrect IDs (edit ProfileForm vs editProfileForm)
-
-
-These don’t always throw errors but break the UI silently.
-
-✅ How high test infrastructure helps
-
-“DOM‑level automated tests verify that required elements actually exist and are interactive.”
-
-Routing and navigation correctness
-🔴 Bug in the snippet
-
-initDashboard():
-
-Forces hash to profile
-Calls renderView() even when data is not ready
-
-
-This can cause empty renders or flicker.
-
-✅ How high test infrastructure helps
-
-“Automated routing tests ensure correct behavior for default hash, invalid hash, and rapid hash changes.”
-
-Confidence to refactor safely
-🔴 Bug risk in the snippet
-
-Heavy use of:
-
-Global mutable state
-Manual DOM manipulation
-
-
-Refactoring (e.g., moving to a state object) is risky without tests.
-
-✅ How high test infrastructure helps
-
-“With strong automated coverage, we can refactor global state or rendering logic without fear of breaking existing behavior.”
